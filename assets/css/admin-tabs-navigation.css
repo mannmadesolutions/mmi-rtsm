@@ -1,0 +1,104 @@
+/**
+ * RTSM Admin Tabs Navigation Styles
+ * Tabbed interface for admin dashboard - Professional Design
+ *
+ * Tab bar itself (.nav-tab-wrapper / .nav-tab) is styled by the shared
+ * library (mmi-suite-common.css) — see AGENTS.md CSS Ownership. This file
+ * only owns RTSM-specific tab-content chrome below.
+ */
+
+/* Tab Badge (PRO) — .mmi-badge-premium made self-sufficient (own
+ * display/padding/margin/font/radius, copied verbatim from the bare
+ * `.mmi-badge` override this used to depend on) rather than relying on a
+ * bare `.mmi-badge` rule here, which collided with the real shared
+ * `.mmi-badge` component (mmi-suite-common.css) — silently overriding its
+ * padding/radius/font-size/colors for every OTHER badge in this plugin
+ * (Dashboard status badges, Logs tab counts), not just this PRO tag, since
+ * this stylesheet loads on every RTSM admin page. Same visual result for
+ * this specific badge as before; every other `.mmi-badge` in the plugin now
+ * correctly gets the real shared pill styling instead. */
+.mmi-badge-premium {
+    display: inline-block;
+    padding: 3px 8px;
+    margin-left: 8px;
+    font-size: 10px;
+    font-weight: 700;
+    line-height: 1;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+    border-radius: 3px;
+    background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+    color: #fff;
+    box-shadow: 0 1px 3px rgba(245, 158, 11, 0.3);
+}
+
+/* Tab Content Container */
+.mmi-tab-content {
+    background: #fff;
+    border: 1px solid #dcdcde;
+    border-top: none;
+    padding: 24px;
+    min-height: 500px;
+}
+
+/* Tab Panes */
+.mmi-tab-pane {
+    display: none;
+}
+
+.mmi-tab-pane.active {
+    display: block;
+    animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(-5px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Loading Placeholder */
+.mmi-tab-loading {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 400px;
+    color: #646970;
+}
+
+.mmi-tab-loading .spinner {
+    margin-bottom: 20px;
+}
+
+.mmi-tab-loading p {
+    font-size: 14px;
+    color: #646970;
+}
+
+/* Admin Container */
+.mmi-admin-container {
+    background: #fff;
+    border: 1px solid #dcdcde;
+    border-radius: 4px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+    margin-top: 20px;
+}
+
+/* Responsive adjustments */
+@media (max-width: 782px) {
+    .mmi-badge {
+        margin-left: 4px;
+        padding: 2px 6px;
+        font-size: 9px;
+    }
+
+    .mmi-tab-content {
+        padding: 16px;
+    }
+}

@@ -1,0 +1,998 @@
+/* Main Admin Page Styles - Professional Design */
+
+/* Admin Wrap */
+.mmi-admin-wrap {
+    margin: 20px 20px 20px 0;
+}
+
+/* MMI Header */
+.mmi-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: linear-gradient(135deg, #2271b1 0%, #135e96 100%);
+    color: #fff;
+    padding: 24px 28px;
+    border-radius: 4px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    margin-bottom: 20px;
+}
+
+.mmi-header h1 {
+    margin: 0;
+    padding: 0;
+    font-size: 28px;
+    font-weight: 700;
+    color: #fff;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.mmi-header h1 .dashicons {
+    font-size: 32px;
+    width: 32px;
+    height: 32px;
+}
+
+.mmi-header-description {
+    margin: 8px 0 0 44px;
+    font-size: 14px;
+    color: rgba(255, 255, 255, 0.9);
+}
+
+.mmi-header-actions {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.mmi-header-actions .button {
+    height: auto;
+    padding: 10px 20px;
+    font-size: 14px;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.mmi-header-actions .button .dashicons {
+    font-size: 18px;
+}
+
+/* License State Badge */
+.rtsm-tier-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 10px;
+    border-radius: 20px;
+    font-size: 13px;
+    font-weight: 600;
+    border: 2px solid rgba(255, 255, 255, 0.3);
+}
+
+.rtsm-tier-badge.rtsm-tier-free {
+    background: rgba(255, 255, 255, 0.1);
+    border-color: rgba(255, 255, 255, 0.2);
+    color: #fff;
+}
+
+.rtsm-tier-badge.rtsm-tier-licensed {
+    background: linear-gradient(135deg, #45852C 0%, #15803d 100%);
+    border-color: #45852C;
+    box-shadow: 0 2px 8px rgba(22, 163, 74, 0.3);
+    color: #fff;
+}
+
+/* Dynamic per-state badge colour, injected via --mmi-tier-bg/--mmi-tier-fg custom
+   properties (see RTSM_Tier_Branding::render_badge()). Same specificity as the two
+   rules above and placed after them, so this always wins by source order and
+   reflects the actual STATES config rather than a hardcoded duplicate of it. */
+.rtsm-tier-badge.rtsm-tier-licensed,
+.rtsm-tier-badge.rtsm-tier-free {
+    background: var(--mmi-tier-bg);
+    color: var(--mmi-tier-fg);
+}
+
+.rtsm-tier-icon {
+    font-size: 16px;
+    line-height: 1;
+}
+
+.rtsm-tier-label {
+    font-size: 13px;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+}
+
+/* Upgrade Button */
+.rtsm-upgrade-button {
+    background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%) !important;
+    border: none !important;
+    color: #fff !important;
+    font-weight: 600 !important;
+    box-shadow: 0 2px 8px rgba(139, 92, 246, 0.4) !important;
+    transition: all 0.2s ease !important;
+}
+
+.rtsm-upgrade-button:hover {
+    background: linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%) !important;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(139, 92, 246, 0.5) !important;
+}
+
+.rtsm-upgrade-button .dashicons {
+    font-size: 16px;
+}
+
+/* Cards */
+.mmi-panel-card {
+    background: #fff;
+    border: 1px solid #dcdcde;
+    border-radius: 4px;
+    padding: 20px;
+    margin-bottom: 20px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+}
+
+.mmi-panel-card h2,
+.mmi-panel-card h3 {
+    margin-top: 0;
+    margin-bottom: 16px;
+    padding-bottom: 12px;
+    border-bottom: 2px solid #f0f0f1;
+    font-size: 18px;
+    font-weight: 600;
+    color: #1d2327;
+}
+
+.mmi-panel-status-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 16px;
+    margin-top: 20px;
+}
+
+.mmi-panel-stat-box {
+    background: #f9f9f9;
+    border-left: 4px solid #2271b1;
+    padding: 16px;
+    border-radius: 4px;
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.mmi-panel-stat-box:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.08);
+}
+
+.mmi-panel-stat-box.success {
+    border-left-color: #45852C;
+}
+
+.mmi-panel-stat-box.warning {
+    border-left-color: #dba617;
+}
+
+.mmi-panel-stat-box.error {
+    border-left-color: #d63638;
+}
+
+.mmi-panel-stat-box.info {
+    border-left-color: #2271b1;
+}
+
+.mmi-panel-stat-box .stat-label,
+.mmi-panel-stat-box .mmi-stat-label {
+    font-size: 13px;
+    color: #646970;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 8px;
+}
+
+.mmi-panel-stat-box .stat-value,
+.mmi-panel-stat-box .mmi-stat-value {
+    font-size: 28px;
+    font-weight: 700;
+    margin: 8px 0;
+    color: #1d2327;
+}
+
+.mmi-panel-stat-box .mmi-stat-meta {
+    font-size: 12px;
+    color: #646970;
+    margin-top: 4px;
+}
+
+.mmi-panel-stat-box .stat-warning {
+    color: #dba617;
+    font-weight: 600;
+}
+
+.mmi-panel-stat-box.error .stat-warning {
+    color: #d63638;
+}
+
+/* Log Display */
+.mmi-rtsm-log-display {
+    background: #f5f5f5;
+    padding: 15px;
+    border-radius: 4px;
+    overflow-x: auto;
+}
+/* WordPress Performance Dashboard */
+.rtsm-dashboard {
+    margin-top: 20px;
+}
+
+.rtsm-stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 12px;
+    margin: 15px 0;
+}
+
+/* ── 3-Column Platform Information Grid ────────────────────────── */
+.rtsm-grid-3col {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+    margin: 20px 0;
+}
+
+.rtsm-grid-3col > div {
+    background: #fff;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    padding: 18px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    transition: all 0.2s ease;
+    display: flex;
+    flex-direction: column;
+}
+
+.rtsm-grid-3col > div:hover {
+    border-color: #2271b1;
+    box-shadow: 0 4px 12px rgba(34, 113, 177, 0.12);
+    transform: translateY(-2px);
+}
+
+.rtsm-grid-3col strong {
+    display: block;
+    margin-bottom: 10px;
+    font-size: 13px;
+    color: #666;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    font-weight: 600;
+}
+
+.rtsm-grid-3col span {
+    font-size: 17px;
+    font-weight: 600;
+    color: #1d2327;
+    line-height: 1.4;
+    word-break: break-word;
+}
+
+.rtsm-stat-card {
+    background: white;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    padding: 15px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    transition: transform 0.2s, box-shadow 0.2s;
+    border-left: 4px solid #2271b1;
+}
+
+.rtsm-stat-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
+
+.rtsm-stat-card h3 {
+    margin: 0 0 10px 0;
+    font-size: 14px;
+    color: #666;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.rtsm-stat-card .stat-value {
+    font-size: 32px;
+    font-weight: 700;
+    line-height: 1.2;
+    margin: 8px 0;
+}
+
+.rtsm-stat-card .stat-subtitle {
+    font-size: 13px;
+    color: #999;
+    margin-top: 5px;
+}
+
+/* Performance Score Indicator */
+.performance-score-circle {
+    width: 150px;
+    height: 150px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 48px;
+    font-weight: 700;
+    margin: 0 auto;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+}
+
+.performance-score-circle.excellent {
+    background: linear-gradient(135deg, #45852C 0%, #45852C 100%);
+    color: white;
+}
+
+.performance-score-circle.good {
+    background: linear-gradient(135deg, #f0b849 0%, #dba617 100%);
+    color: white;
+}
+
+.performance-score-circle.poor {
+    background: linear-gradient(135deg, #dc3232 0%, #d63638 100%);
+    color: white;
+}
+
+/* Recommendation Cards */
+.recommendation-item {
+    background: #f9f9f9;
+    padding: 20px;
+    margin-bottom: 15px;
+    border-left: 4px solid #2271b1;
+    border-radius: 4px;
+    transition: background 0.2s;
+}
+
+.recommendation-item:hover {
+    background: #f5f5f5;
+}
+
+.recommendation-item.critical {
+    border-left-color: #dc3232;
+    background: #fff5f5;
+}
+
+.recommendation-item.high {
+    border-left-color: #f0b849;
+    background: #fffbf0;
+}
+
+.recommendation-item h4 {
+    margin: 0 0 10px 0;
+    font-size: 16px;
+    color: #1d2327;
+}
+
+/* Upgrade Prompt Styling */
+.rtsm-upgrade-prompt {
+    background: linear-gradient(135deg, #45852c 0%, #357a23 100%);
+    color: white;
+    padding: 30px;
+    border-radius: 8px;
+    text-align: center;
+    margin: 30px 0;
+    box-shadow: 0 4px 12px rgba(69, 133, 44, 0.2);
+}
+
+.rtsm-upgrade-prompt h2 {
+    color: white;
+    margin: 0 0 15px 0;
+    border-bottom: none;
+}
+
+.rtsm-upgrade-features {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 15px;
+    margin: 20px 0;
+}
+
+.rtsm-upgrade-feature {
+    background: rgba(255, 255, 255, 0.1);
+    padding: 15px;
+    border-radius: 6px;
+}
+.rtsm-upgrade-feature .feature-icon {
+    font-size: 24px;
+    margin-bottom: 5px;
+}
+
+.rtsm-upgrade-feature .feature-desc {
+    font-size: 13px;
+    opacity: 0.8;
+    margin: 5px 0 0 0;
+}
+
+.rtsm-upgrade-prompt .upgrade-intro {
+    font-size: 16px;
+    margin: 0 0 20px 0;
+    opacity: 0.9;
+}
+
+.rtsm-upgrade-prompt .upgrade-button {
+    background: white;
+    color: #45852c;
+    border: none;
+    margin-top: 10px;
+    font-size: 18px;
+    padding: 12px 40px;
+}
+
+.rtsm-upgrade-prompt .upgrade-button:hover {
+    background: #f5f5f5;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+}
+
+.rtsm-upgrade-prompt .upgrade-guarantee {
+    font-size: 14px;
+    margin: 15px 0 0 0;
+    opacity: 0.8;
+}
+
+/* Performance Score Card */
+.performance-score-card {
+    text-align: center;
+    background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+    margin-top: 0;
+    padding: 20px;
+    border: 1px solid #c3c4c7;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+}
+
+.performance-score-card.excellent {
+    border-left: 5px solid #45852C;
+    background: linear-gradient(135deg, #fff 0%, #ffffff 100%);
+}
+
+.performance-score-card.good {
+    border-left: 5px solid #f0b849;
+    background: linear-gradient(135deg, #fffbf0 0%, #ffffff 100%);
+}
+
+.performance-score-card.poor {
+    border-left: 5px solid #dc3232;
+    background: linear-gradient(135deg, #fff5f5 0%, #ffffff 100%);
+}
+
+.performance-score-card h2 {
+    margin: 0 0 20px 0;
+}
+
+.performance-score-display {
+    padding: 12px 0;
+}
+
+.score-number {
+    font-size: 56px;
+    font-weight: 700;
+    line-height: 1;
+    text-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.performance-score-card.excellent .score-number {
+    color: #45852C;
+}
+
+.performance-score-card.good .score-number {
+    color: #f0b849;
+}
+
+.performance-score-card.poor .score-number {
+    color: #dc3232;
+}
+
+.score-max {
+    font-size: 24px;
+    color: #666;
+}
+
+.score-grade {
+    font-size: 28px;
+    font-weight: 600;
+    color: #666;
+    margin-top: 5px;
+}
+
+.score-message {
+    margin-top: 12px;
+    font-size: 14px;
+    color: #666;
+    line-height: 1.4;
+}
+
+/* Severity-based stat cards */
+.rtsm-stat-card.severity-critical {
+    border-left: 4px solid #dc3232;
+}
+
+.rtsm-stat-card.severity-critical .stat-value {
+    color: #dc3232;
+}
+
+.rtsm-stat-card.severity-high {
+    border-left: 4px solid #f0b849;
+}
+
+.rtsm-stat-card.severity-high .stat-value {
+    color: #f0b849;
+}
+
+.rtsm-stat-card.severity-medium {
+    border-left: 4px solid #45852C;
+}
+
+.rtsm-stat-card.severity-medium .stat-value {
+    color: #45852C;
+}
+
+.rtsm-stat-card.severity-info {
+    border-left: 4px solid #2271b1;
+}
+
+.rtsm-stat-card.severity-info .stat-value {
+    color: #2271b1;
+}
+
+/* Card descriptions */
+.card-description {
+    color: #666;
+    margin-bottom: 12px;
+    font-size: 13px;
+    line-height: 1.5;
+}
+
+/* Tables */
+.widefat {
+    border: 1px solid #e5e5e5;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+}
+
+.widefat th {
+    background: #f9f9f9;
+    font-weight: 600;
+    padding: 12px;
+}
+
+.widefat td {
+    padding: 12px;
+}
+
+/* Recommendation Items */
+.recommendation-item {
+    padding: 15px;
+    margin-bottom: 12px;
+    border: 1px solid #e5e5e5;
+    border-left: 4px solid #2271b1;
+    border-radius: 6px;
+    background: #f9f9f9;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+}
+
+.recommendation-item.critical {
+    background: #fff5f5;
+    border-left-color: #dc3232;
+}
+
+.recommendation-item.high {
+    background: #fffbf0;
+    border-left-color: #f0b849;
+}
+
+.recommendation-item.medium {
+    background: #f9f9f9;
+    border-left-color: #2271b1;
+}
+
+.recommendation-content {
+    display: flex;
+    justify-content: space-between;
+    align-items: start;
+}
+
+.recommendation-main {
+    flex: 1;
+}
+
+.recommendation-title {
+    margin: 0 0 8px 0;
+    font-size: 15px;
+    font-weight: 600;
+}
+
+.recommendation-description {
+    margin: 0 0 8px 0;
+    color: #666;
+    font-size: 14px;
+    line-height: 1.5;
+}
+
+.recommendation-impact {
+    margin: 0 0 10px 0;
+    color: #999;
+    font-size: 13px;
+}
+
+.recommendation-fixes {
+    margin-top: 12px;
+}
+
+.fixes-toggle {
+    cursor: pointer;
+    font-weight: 600;
+    color: #45852c;
+    font-size: 13px;
+}
+
+.fixes-toggle:hover {
+    color: #357a23;
+}
+
+.fixes-list {
+    margin: 8px 0 0 18px;
+    line-height: 1.6;
+    font-size: 13px;
+}
+
+.recommendation-improvement {
+    background: white;
+    padding: 8px 12px;
+    border-radius: 4px;
+    margin-left: 15px;
+    text-align: center;
+    min-width: 100px;
+}
+
+.improvement-label {
+    font-size: 11px;
+    color: #999;
+    text-transform: uppercase;
+}
+
+.improvement-value {
+    font-size: 15px;
+    font-weight: 700;
+    color: #45852c;
+    margin-top: 3px;
+}
+
+.request-url {
+    font-size: 12px;
+}
+
+/* Load time indicators */
+.load-time {
+    font-weight: 600;
+}
+
+.load-time.fast {
+    color: #45852C;
+}
+
+.load-time.medium {
+    color: #f0b849;
+}
+
+.load-time.slow {
+    color: #dc3232;
+}
+
+/* Stat box additions */
+.mmi-panel-stat-box .stat-value {
+    font-size: 22px;
+    font-weight: 700;
+    margin: 8px 0;
+}
+
+.mmi-panel-stat-box .stat-label {
+    font-size: 12px;
+    color: #666;
+}
+
+.mmi-panel-stat-box .stat-warning {
+    color: #f0b849;
+    font-weight: 600;
+}
+
+.mmi-panel-stat-box.error .stat-warning {
+    color: #dc3232;
+}
+
+/* ============================================
+   STATUS INDICATORS - Replaces Inline Styles
+   ============================================ */
+
+/* Status Colors - Used across all admin pages */
+.rtsm-status-success,
+.rtsm-status-normal {
+    color: #45852C !important;
+}
+
+.rtsm-status-warning {
+    color: #f0b849 !important;
+}
+
+.rtsm-status-danger,
+.rtsm-status-critical {
+    color: #dc3232 !important;
+}
+
+/* Border Colors for Dynamic Stat Cards */
+.rtsm-stat-card.border-success {
+    border-left-color: #45852C !important;
+}
+
+.rtsm-stat-card.border-warning {
+    border-left-color: #f0b849 !important;
+}
+
+.rtsm-stat-card.border-danger {
+    border-left-color: #dc3232 !important;
+}
+
+/* Stat Value Colors */
+.stat-value.status-success {
+    color: #45852C !important;
+}
+
+.stat-value.status-warning {
+    color: #f0b849 !important;
+}
+
+.stat-value.status-danger {
+    color: #dc3232 !important;
+}
+
+/* CPU Cell Colors for Tables */
+.rtsm-cpu-high {
+    color: #dc3232 !important;
+    font-weight: 600;
+}
+
+.rtsm-cpu-medium {
+    color: #f0b849 !important;
+    font-weight: 600;
+}
+
+.rtsm-cpu-normal {
+    color: #666 !important;
+}
+
+/* ============================================
+   CARD STYLES - Replaces Inline Styles
+   ============================================ */
+
+/* Diagnostic Cards */
+.rtsm-diagnostic-card {
+    max-width: 100%;
+    margin: 20px 0;
+}
+
+.rtsm-diagnostic-list {
+    line-height: 2;
+}
+
+.rtsm-diagnostic-table {
+    width: 100%;
+}
+
+.rtsm-diagnostic-table td {
+    padding: 8px;
+}
+
+.rtsm-diagnostic-table td:first-child {
+    width: 200px;
+}
+
+/* Card Style Variants */
+.rtsm-card-info {
+    background: #f0f6fc;
+    border-left: 4px solid #0073aa;
+    padding: 15px;
+    margin: 20px 0;
+}
+
+.rtsm-card-warning {
+    background: #fff;
+    border-left: 4px solid #f0b849;
+    padding: 15px;
+    margin-top: 20px;
+}
+
+.rtsm-card-success {
+    background: #e8f5e9;
+    padding: 20px;
+    border-radius: 4px;
+    margin: 20px 0;
+}
+
+.rtsm-card-success h3 {
+    color: #45852C;
+}
+
+.rtsm-card-neutral {
+    background: #f0f0f1;
+    padding: 20px;
+    border-radius: 4px;
+    margin: 20px 0;
+}
+
+/* ============================================
+   UTILITY CLASSES
+   ============================================ */
+
+.rtsm-text-center {
+    text-align: center;
+}
+
+.rtsm-mt-0 {
+    margin-top: 0;
+}
+
+.rtsm-mb-0 {
+    margin-bottom: 0;
+}
+
+.rtsm-ml-20 {
+    margin-left: 20px;
+}
+
+/* ── Load Cause Analysis card ──────────────────────────────────────── */
+.card-load-causes {
+    border-left: 4px solid #f0b849;
+}
+
+.card-load-causes h2 {
+    color: #b45309;
+}
+
+.rtsm-cause-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+.rtsm-cause-item {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding: 10px 14px;
+    margin-bottom: 8px;
+    border-radius: 4px;
+    font-size: 13px;
+    line-height: 1.5;
+}
+
+.rtsm-cause-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.rtsm-cause-header .dashicons {
+    flex-shrink: 0;
+    font-size: 18px;
+    width: 18px;
+    height: 18px;
+}
+
+.rtsm-cause-detail {
+    font-size: 12px;
+    color: #50575e;
+    margin-left: 26px;
+}
+
+.rtsm-cause-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-left: 26px;
+    margin-top: 4px;
+}
+
+.rtsm-action-btn {
+    display: inline-flex !important;
+    align-items: center;
+    gap: 4px;
+    font-size: 12px !important;
+    padding: 4px 10px !important;
+    height: auto !important;
+    line-height: 1.4 !important;
+}
+
+.rtsm-action-btn .dashicons {
+    font-size: 14px;
+    width: 14px;
+    height: 14px;
+}
+
+/* Severity bar in cause panel header */
+.rtsm-severity-bar-wrap {
+    margin: 10px 0 14px;
+    padding: 10px 14px;
+    background: #f9f9f9;
+    border-radius: 4px;
+    border: 1px solid #e5e5e5;
+}
+
+.rtsm-cause-action-link {
+    font-size: 12px;
+    color: #2271b1;
+    text-decoration: none;
+}
+
+.rtsm-cause-critical {
+    background: #fff5f5;
+    border-left: 3px solid #dc3232;
+}
+
+.rtsm-cause-critical .dashicons {
+    color: #dc3232;
+}
+
+.rtsm-cause-warning {
+    background: #fffbf0;
+    border-left: 3px solid #f0b849;
+}
+
+.rtsm-cause-warning .dashicons {
+    color: #b45309;
+}
+
+.rtsm-cause-info {
+    background: #f0f6ff;
+    border-left: 3px solid #2271b1;
+}
+
+.rtsm-cause-info .dashicons {
+    color: #2271b1;
+}
+
+.rtsm-cause-none {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: #45852C;
+    font-size: 13px;
+}
+
+.rtsm-cause-sublist {
+    list-style: none;
+    margin: 6px 0 0 22px;
+    padding: 0;
+}
+
+.rtsm-cause-sublist li {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    margin-right: 8px;
+}
+
+/* Incident causes block inside active-incident card */
+.rtsm-incident-causes {
+    background: #f9f9f9;
+    border: 1px solid #e5e5e5;
+    border-radius: 4px;
+    padding: 10px 14px;
+}
+
+/* Cause panel badges now use the shared .mmi-badge (mmi-suite-common.css) with
+   its own success/warning/error/info modifiers directly, no local wrapper class. */
+
+/* Cron button success feedback */
+.rtsm-btn-success { color: #45852C; }
+

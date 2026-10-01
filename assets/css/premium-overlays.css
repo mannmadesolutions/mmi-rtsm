@@ -1,0 +1,286 @@
+/**
+ * RTSM Feature Overlay & License Badge Styles
+ *
+ * Styling for feature overlays and license state badges.
+ * RTSM uses a binary licensed/unlicensed model — no product tiers.
+ *
+ * @package MMI_RTSM
+ * @since 3.0.0
+ */
+
+/* ================================================================
+   License State Badge Styles
+   ================================================================ */
+
+/* Base badge (used in admin page header — see admin-page.css for full overrides) */
+.rtsm-tier-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 12px;
+    border-radius: 4px;
+    font-size: 13px;
+    font-weight: 600;
+    line-height: 1.4;
+}
+
+.rtsm-tier-badge .dashicons {
+    font-size: 14px;
+    width: 14px;
+    height: 14px;
+    line-height: 14px;
+}
+
+/* License state colors */
+.rtsm-tier-free {
+    background: #f0f0f1;
+    color: #50575e;
+}
+
+.rtsm-tier-licensed {
+    background: #45852C;
+    color: #ffffff;
+}
+
+/* Tab lock badge — shown on tabs requiring a license */
+.mmi-badge.rtsm-tier-licensed {
+    background: #45852C;
+    color: #fff;
+    font-size: 10px;
+    padding: 2px 6px;
+    border-radius: 3px;
+    margin-left: 6px;
+    vertical-align: middle;
+}
+
+/* ================================================================
+   Feature Overlay Container
+   ================================================================ */
+
+.rtsm-premium-preview-wrapper {
+    position: relative;
+    min-height: 400px;
+    overflow: hidden;
+}
+
+/* Obfuscated Content Preview */
+.rtsm-premium-preview-content {
+    filter: blur(4px);
+    opacity: 0.4;
+    pointer-events: none;
+    user-select: none;
+}
+
+/* Premium Overlay */
+.rtsm-premium-feature-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(255, 255, 255, 0.97);
+    backdrop-filter: blur(8px);
+    z-index: 10;
+    padding: 40px 20px;
+}
+
+.rtsm-premium-feature-content {
+    max-width: 600px;
+    text-align: center;
+    animation: rtsm-slideUp 0.4s ease;
+}
+
+@keyframes rtsm-slideUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Lock Icon */
+.rtsm-premium-lock-icon {
+    font-size: 64px;
+    margin-bottom: 16px;
+    opacity: 0.8;
+    animation: rtsm-pulse 2s ease-in-out infinite;
+    
+}
+
+@keyframes rtsm-pulse {
+    0%, 100% {
+        transform: scale(1);
+        opacity: 0.8;
+    }
+    50% {
+        transform: scale(1.05);
+        opacity: 1;
+    }
+}
+
+/* Heading */
+.rtsm-premium-heading {
+    font-size: 28px;
+    font-weight: 700;
+    color: #1d2327;
+    margin: 0 0 12px 0;
+}
+
+/* Description */
+.rtsm-premium-description {
+    font-size: 16px;
+    color: #646970;
+    margin: 0 0 24px 0;
+    line-height: 1.6;
+}
+
+/* Feature List */
+.rtsm-premium-feature-list {
+    text-align: left;
+    margin: 0 0 32px 0;
+    padding: 0;
+    list-style: none;
+}
+
+.rtsm-premium-feature-list li {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    margin-bottom: 12px;
+    font-size: 15px;
+    color: #2c3338;
+}
+
+.rtsm-premium-feature-list li:before {
+    content: '\2713';
+    flex-shrink: 0;
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #2271b1;
+    color: #fff;
+    border-radius: 50%;
+    font-weight: 700;
+    font-size: 14px;
+}
+
+/* ================================================================
+   Action Buttons
+   ================================================================ */
+
+.rtsm-premium-actions {
+    display: flex;
+    gap: 12px;
+    justify-content: center;
+    flex-wrap: wrap;
+}
+
+.rtsm-premium-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 14px 28px;
+    font-size: 15px;
+    font-weight: 600;
+    border-radius: 6px;
+    text-decoration: none;
+    transition: all 0.2s ease;
+    cursor: pointer;
+}
+
+.rtsm-premium-btn-primary {
+    background: #2271b1;
+    color: #fff;
+    border: none;
+    box-shadow: 0 2px 8px rgba(34, 113, 177, 0.3);
+}
+
+.rtsm-premium-btn-primary:hover {
+    opacity: 0.9;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    color: #fff;
+}
+
+.rtsm-premium-btn-secondary {
+    background: #fff;
+    color: #2271b1;
+    border: 2px solid #2271b1;
+}
+
+.rtsm-premium-btn-secondary:hover {
+    background: #2271b1;
+    color: #fff;
+    transform: translateY(-2px);
+}
+
+/* ================================================================
+   Responsive
+   ================================================================ */
+
+@media (max-width: 782px) {
+    .rtsm-premium-heading {
+        font-size: 24px;
+    }
+
+    .rtsm-premium-description {
+        font-size: 14px;
+    }
+
+    .rtsm-premium-actions {
+        flex-direction: column;
+    }
+
+    .rtsm-premium-btn {
+        width: 100%;
+        justify-content: center;
+    }
+
+    .rtsm-tier-comparison-header,
+    .rtsm-tier-comparison-row {
+        grid-template-columns: 2fr repeat(4, 1fr);
+        font-size: 12px;
+    }
+
+    .rtsm-tier-comparison-cell {
+        padding: 10px 6px;
+        font-size: 12px;
+    }
+}
+
+@media (max-width: 480px) {
+    .rtsm-tier-comparison-header,
+    .rtsm-tier-comparison-row {
+        grid-template-columns: 1fr;
+    }
+
+    .rtsm-tier-comparison-cell.rtsm-tier-comparison-feature {
+        font-weight: 700;
+        background: #f9f9f9;
+        border-bottom: 1px solid #dcdcde;
+    }
+}
+
+/* ================================================================
+   Loading State
+   ================================================================ */
+
+.rtsm-premium-loading {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 300px;
+    color: #646970;
+}
+
+.rtsm-premium-loading .spinner {
+    margin-right: 12px;
+}

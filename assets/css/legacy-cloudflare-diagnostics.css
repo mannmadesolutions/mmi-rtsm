@@ -1,0 +1,400 @@
+/**
+ * LEGACY: CloudFlare Diagnostics Integration Styles
+ * 
+ * This file contains styles for the CloudFlare diagnostics integration
+ * used in the Diagnostics tab when MMI CloudFlare Protection plugin is active.
+ * 
+ * Status: LEGACY - Only used for diagnostics tab integration
+ * Location: Used in templates/admin/tabs/diagnostics.php
+ * Can be removed if: CloudFlare integration is fully deprecated
+ * 
+ * @package MMI_RTSM
+ * @since 2.0.0
+ * @deprecated-status: Maintained for compatibility
+ */
+
+/**
+ * MMI CloudFlare Protection - Admin Styles
+ * Theme Color: #45852c (MannMade Green)
+ */
+
+/* Main Theme Colors */
+:root {
+    /* Global Font Family for All MMI Plugins */
+    --mmi-font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen-Sans, Ubuntu, Cantarell, "Helvetica Neue", sans-serif;
+    --mmi-green: #45852c;
+    --mmi-green-light: #5a9d3a;
+    --mmi-green-dark: #356620;
+    --mmi-green-bg: #f0f7ed;
+}
+
+
+/* ===================================
+   FONT FAMILY — scoped to RTSM component classes only
+   =================================== */
+
+.mmi-panel-header,
+.mmi-dashboard,
+.mmi-admin-page,
+.mmi-container,
+.mmi-panel-header p,
+.mmi-dashboard p,
+.mmi-admin-page p,
+.mmi-container p,
+.mmi-panel-header a,
+.mmi-dashboard a,
+.mmi-admin-page a,
+.mmi-container a,
+.mmi-panel-header button,
+.mmi-dashboard button,
+.mmi-admin-page button,
+.mmi-container button,
+.mmi-panel-header input,
+.mmi-dashboard input,
+.mmi-admin-page input,
+.mmi-container input,
+.mmi-panel-header textarea,
+.mmi-dashboard textarea,
+.mmi-admin-page textarea,
+.mmi-container textarea,
+.mmi-panel-header select,
+.mmi-dashboard select,
+.mmi-admin-page select,
+.mmi-container select,
+.mmi-panel-header label,
+.mmi-dashboard label,
+.mmi-admin-page label,
+.mmi-container label {
+  font-family: var(--mmi-font-family);
+}
+
+/* CloudFlare Page Header */
+.mmi-panel-header {
+    background: linear-gradient(135deg, var(--mmi-green) 0%, var(--mmi-green-dark) 100%);
+    color: white;
+    padding: 20px 30px;
+    margin: -10px -20px 20px -10px;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(69, 133, 44, 0.2);
+}
+
+.mmi-panel-header h1 {
+    color: white;
+    margin: 0;
+    font-size: 28px;
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.mmi-panel-header .dashicons {
+    font-size: 32px;
+    width: 32px;
+    height: 32px;
+}
+
+/* Tab Navigation (.nav-tab-wrapper / .nav-tab) is styled by the shared
+   library (mmi-suite-common.css) — see AGENTS.md CSS Ownership. Do not
+   redefine it here; a local override shadows the suite-wide look. */
+
+/* Cards */
+.mmi-panel-card {
+    background: white;
+    border: 1px solid #e5e5e5;
+    border-radius: 6px;
+    padding: 20px;
+    margin-bottom: 18px;
+    box-shadow: none;
+    transition: box-shadow 0.2s ease, border-color 0.2s ease;
+}
+
+.mmi-panel-card:hover {
+    border-color: #45852c;
+    box-shadow: 0 1px 4px rgba(69, 133, 44, 0.1);
+}
+
+.mmi-panel-card h2 {
+    color: var(--mmi-green);
+    font-size: 16px;
+    font-weight: 600;
+    margin-top: 0;
+    padding-bottom: 12px;
+    border-bottom: 2px solid var(--mmi-green);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    line-height: 1.4;
+}
+
+.mmi-panel-card h2 .dashicons {
+    color: var(--mmi-green);
+    font-size: 18px;
+}
+
+/* Status Boxes */
+.mmi-panel-stat-box {
+    background: #ffffff;
+    border: 1px solid #e5e5e5;
+    padding: 18px;
+    border-radius: 6px;
+    transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+}
+
+.mmi-panel-stat-box:hover {
+    transform: translateY(-1px);
+    border-color: #45852c;
+    box-shadow: 0 2px 6px rgba(69, 133, 44, 0.1);
+}
+
+.mmi-panel-stat-box h3 {
+    margin: 0 0 8px 0;
+    font-size: 11px;
+    color: #646970;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    line-height: 1.4;
+}
+
+.mmi-panel-stat-box .value {
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--mmi-green-dark);
+    line-height: 1.3;
+}
+
+.mmi-panel-stat-box small {
+    font-size: 11px;
+    line-height: 1.4;
+    color: #646970;
+}
+
+.mmi-panel-stat-box.success .value {
+    color: var(--mmi-green);
+}
+
+.mmi-panel-stat-box.warning .value {
+    color: #dba617;
+}
+
+.mmi-panel-stat-box.error .value {
+    color: #d63638;
+}
+
+/* Buttons */
+.button-primary,
+#cf-test-connection,
+.mmi-panel-actions .button {
+    background: var(--mmi-green) !important;
+    border-color: var(--mmi-green-dark) !important;
+    color: white !important;
+    box-shadow: 0 2px 4px rgba(69, 133, 44, 0.2) !important;
+    transition: all 0.3s ease !important;
+}
+
+.button-primary:hover,
+#cf-test-connection:hover,
+.mmi-panel-actions .button:hover {
+    background: var(--mmi-green-light) !important;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(69, 133, 44, 0.3) !important;
+}
+
+.button-primary:active,
+#cf-test-connection:active {
+    transform: translateY(0);
+}
+
+/* Under Attack Mode Button */
+#cf-under-attack {
+    background: #d63638 !important;
+    border-color: #b32d2e !important;
+}
+
+#cf-under-attack:hover {
+    background: #dc3545 !important;
+}
+
+/* Security Level Badges */
+.mmi-panel-security-level {
+    display: inline-block;
+    padding: 6px 12px;
+    border-radius: 4px;
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.mmi-panel-security-level.level-off,
+.mmi-panel-security-level.level-essentially_off {
+    background: #f0f0f1;
+    color: #646970;
+}
+
+.mmi-panel-security-level.level-low {
+    background: #d5e8d4;
+    color: var(--mmi-green-dark);
+}
+
+.mmi-panel-security-level.level-medium {
+    background: #fff3cd;
+    color: #856404;
+}
+
+.mmi-panel-security-level.level-high {
+    background: #ffd4a3;
+    color: #8a4500;
+}
+
+.mmi-panel-security-level.level-under_attack {
+    background: #ffd4d4;
+    color: #d63638;
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.7; }
+}
+
+/* Forms */
+.mmi-panel-input-group {
+    margin-bottom: 25px;
+}
+
+.mmi-panel-input-group label {
+    display: block;
+    font-weight: 600;
+    margin-bottom: 8px;
+    color: var(--mmi-green-dark);
+}
+
+.mmi-panel-input-group input[type="text"],
+.mmi-panel-input-group input[type="number"],
+.mmi-panel-input-group select {
+    border: 2px solid #e5e5e5;
+    border-radius: 4px;
+    padding: 8px 12px;
+    transition: border-color 0.3s ease;
+}
+
+.mmi-panel-input-group input[type="text"]:focus,
+.mmi-panel-input-group input[type="number"]:focus,
+.mmi-panel-input-group select:focus {
+    border-color: var(--mmi-green);
+    box-shadow: 0 0 0 3px rgba(69, 133, 44, 0.1);
+    outline: none;
+}
+
+/* Checkboxes */
+.mmi-panel-toggle input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+    accent-color: var(--mmi-green);
+}
+
+/* Notices */
+.notice.notice-success {
+    border-left-color: var(--mmi-green);
+}
+
+/* IP List */
+.mmi-panel-ip-list {
+    background: var(--mmi-green-bg);
+    border: 1px solid #d4e8cc;
+    border-radius: 4px;
+    padding: 15px;
+}
+
+.mmi-panel-ip-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px;
+    background: white;
+    border-radius: 4px;
+    margin-bottom: 8px;
+    border-left: 3px solid var(--mmi-green);
+}
+
+.mmi-panel-ip-item:last-child {
+    margin-bottom: 0;
+}
+
+.mmi-panel-ip-item code {
+    color: var(--mmi-green-dark);
+    font-weight: 600;
+}
+
+/* Spinner Override */
+.spinner {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%2345852c' d='M12 2a10 10 0 1 0 10 10h-2a8 8 0 1 1-8-8V2z'/%3E%3C/svg%3E");
+}
+
+/* Grid Layouts */
+.mmi-panel-status-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 20px;
+    margin-top: 20px;
+}
+
+.mmi-panel-form-section {
+    padding-bottom: 25px;
+    margin-bottom: 25px;
+    border-bottom: 1px solid #e5e5e5;
+}
+
+.mmi-panel-form-section:last-child {
+    border-bottom: none;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .mmi-panel-status-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .mmi-panel-header {
+        margin: -10px -15px 20px -10px;
+    }
+}
+
+/* Loading States */
+.mmi-panel-loading {
+    opacity: 0.6;
+    pointer-events: none;
+}
+
+/* Success Indicators */
+.mmi-panel-success-indicator {
+    color: var(--mmi-green);
+    font-weight: 600;
+}
+
+.mmi-panel-error-indicator {
+    color: #d63638;
+    font-weight: 600;
+}
+
+/* Tab Content */
+.cf-tab-content {
+    display: none;
+}
+
+.cf-tab-content.active {
+    display: block;
+    animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}

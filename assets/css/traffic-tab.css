@@ -1,0 +1,404 @@
+/**
+ * Real-Time Server Monitor — Traffic Analysis Tab Styles
+ *
+ * All styles for the traffic tab live here; none are inlined in traffic.php.
+ * JS-driven state changes use the CSS classes defined in this file.
+ *
+ * @package MMI_RTSM
+ */
+
+/* ── Layout ──────────────────────────────────────────────────────────── */
+.rtsm-traffic-wrap {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.rtsm-card {
+    background: #fff;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    padding: 18px 22px;
+}
+
+.rtsm-card h2 {
+    margin: 0 0 14px;
+    font-size: 15px;
+    display: flex;
+    align-items: center;
+    gap: 7px;
+}
+
+.rtsm-card h3 {
+    margin: 14px 0 8px;
+    font-size: 13px;
+    font-weight: 600;
+    color: #444;
+    border-bottom: 1px solid #f0f0f0;
+    padding-bottom: 6px;
+}
+
+/* ── Utility ─────────────────────────────────────────────────────────── */
+.rtsm-hidden { display: none !important; }
+
+/* ── CSS Custom Properties & Theme Support ───────────────────────────── */
+.rtsm-status-card-theme {
+    border-left: 4px solid var(--border-color, #45852C);
+    background: #ffffff;
+}
+
+.rtsm-status-card-theme .rtsm-status-heading {
+    color: var(--text-color, #14532d);
+}
+
+.rtsm-status-time {
+    font-size: 12px;
+    font-weight: 400;
+    color: #888;
+    margin-left: auto;
+}
+
+#rtsm-interpretation {
+    background: var(--bg-color);
+    border-left-color: var(--border-color);
+    color: var(--text-color);
+}
+
+.rtsm-load-bar-fill {
+    width: var(--load-pct, 0%);
+    height: 100%;
+    border-radius: 8px;
+    transition: width .4s, background-color .4s;
+    background-color: var(--bar-color, #45852C);
+}
+
+.rtsm-small-text {
+    font-size: 12px;
+}
+
+.rtsm-warning-text {
+    color: #78350f;
+}
+
+/* ── Dynamic value colours (applied by JS) ───────────────────────────── */
+.rtsm-color-ok   { color: #45852C !important; }
+.rtsm-color-warn { color: #d97706 !important; }
+.rtsm-color-crit { color: #dc2626 !important; }
+
+/* ── Status stat grid ────────────────────────────────────────────────── */
+.rtsm-status-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr 1fr;
+    gap: 14px;
+}
+
+@media (max-width: 900px) {
+    .rtsm-status-grid { grid-template-columns: 1fr 1fr; }
+}
+
+.rtsm-stat-cell {
+    text-align: center;
+    padding: 12px 8px;
+    border-radius: 6px;
+    background: #f9f9f9;
+    border: 1px solid #ebebeb;
+}
+
+.rtsm-stat-cell .val {
+    font-size: 26px;
+    font-weight: 700;
+    line-height: 1.1;
+}
+
+.rtsm-stat-cell .lbl {
+    font-size: 11px;
+    color: #777;
+    margin-top: 4px;
+    text-transform: uppercase;
+    letter-spacing: .5px;
+}
+
+.rtsm-stat-cell .sub {
+    font-size: 11px;
+    color: #999;
+    margin-top: 3px;
+}
+
+/* ── Load bar ─────────────────────────────────────────────────────────── */
+.rtsm-load-bar-wrap { margin: 14px 0 6px; }
+
+.rtsm-load-bar-label {
+    font-size: 11px;
+    color: #888;
+    margin-bottom: 4px;
+}
+
+.rtsm-load-bar-bg {
+    height: 10px;
+    background: #e5e7eb;
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.rtsm-load-bar-fill {
+    height: 100%;
+    border-radius: 8px;
+    transition: width .4s, background-color .4s;
+}
+
+/* ── Interpretation box ──────────────────────────────────────────────── */
+.rtsm-interpretation {
+    padding: 12px 16px;
+    border-radius: 6px;
+    border-left: 4px solid;
+    margin-top: 4px;
+    font-size: 13px;
+    line-height: 1.6;
+}
+
+.rtsm-interpretation strong {
+    display: block;
+    font-size: 14px;
+    margin-bottom: 4px;
+}
+
+/* Only the variant matching the current severity is shown.
+   JS swaps the rtsm-sev-* class on #rtsm-interpretation. */
+.rtsm-interp-block { display: none; }
+
+.rtsm-interpretation.rtsm-sev-normal    .rtsm-interp-normal    { display: block; }
+.rtsm-interpretation.rtsm-sev-elevated  .rtsm-interp-elevated  { display: block; }
+.rtsm-interpretation.rtsm-sev-critical  .rtsm-interp-critical  { display: block; }
+.rtsm-interpretation.rtsm-sev-emergency .rtsm-interp-emergency { display: block; }
+
+/* ── Mitigation guidance ─────────────────────────────────────────────── */
+.rtsm-mitigation-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+}
+
+@media (max-width: 900px) { .rtsm-mitigation-grid { grid-template-columns: 1fr; } }
+
+.rtsm-mitigation-item {
+    background: #f9fafb;
+    border: 1px solid #e5e7eb;
+    border-radius: 6px;
+    padding: 12px 14px;
+}
+
+.rtsm-mitigation-item h4 { margin: 0 0 6px; font-size: 13px; color: #374151; }
+
+.rtsm-mitigation-item ul {
+    margin: 0;
+    padding-left: 16px;
+    font-size: 12.5px;
+    line-height: 1.7;
+    color: #555;
+}
+
+.rtsm-mitigation-item .rtsm-action-link {
+    display: inline-block;
+    margin-top: 8px;
+    font-size: 12px;
+    text-decoration: none;
+    padding: 4px 10px;
+    border-radius: 4px;
+    background: #2271b1;
+    color: #fff;
+}
+
+.rtsm-mitigation-item .rtsm-action-link:hover { background: #1a5a9a; }
+
+/* ── Cloudflare status rows ──────────────────────────────────────────── */
+.rtsm-cf-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 9px 12px;
+    border-radius: 5px;
+    margin-bottom: 8px;
+    font-size: 13px;
+    border: 1px solid;
+}
+
+.rtsm-cf-ok    { background: #f0fdf4; border-color: #fff; color: #166534; }
+.rtsm-cf-warn  { background: #fffbeb; border-color: #fde68a; color: #78350f; }
+.rtsm-cf-error { background: #fef2f2; border-color: #fca5a5; color: #7f1d1d; }
+
+.rtsm-cf-row .icon { font-size: 17px; flex-shrink: 0; }
+
+.rtsm-cf-row--promo { gap: 16px; align-items: flex-start; }
+.rtsm-cf-row--promo-icon { font-size: 24px; }
+.rtsm-cf-row--promo-text { margin: 6px 0 10px; color: #50575e; }
+.rtsm-cf-row--promo-cta-icon { margin-top: 3px; }
+
+/* ── Auto-remediation threshold grid ────────────────────────────────── */
+.rtsm-thresh-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+}
+
+@media (max-width: 900px) { .rtsm-thresh-grid { grid-template-columns: 1fr 1fr; } }
+
+.rtsm-thresh-cell {
+    border-radius: 6px;
+    padding: 12px;
+    text-align: center;
+    border: 2px solid var(--thresh-border, transparent);
+    background: var(--thresh-bg, #f9f9f9);
+    transition: all .2s;
+}
+
+.rtsm-thresh-cell.active {
+    border-color: #2271b1 !important;
+    box-shadow: 0 0 0 2px rgba(34, 113, 177, .2);
+}
+
+.rtsm-thresh-cell .thresh-icon   { font-size: 22px; }
+.rtsm-thresh-cell .thresh-label  { font-size: 11px; font-weight: 700; text-transform: uppercase; margin: 6px 0 3px; color: var(--thresh-txt, inherit); }
+.rtsm-thresh-cell .thresh-action { font-size: 11.5px; line-height: 1.4; color: var(--thresh-txt, inherit); opacity: .85; }
+.rtsm-thresh-cell .thresh-trigger { font-size: 11px; margin-top: 5px; opacity: .7; color: var(--thresh-txt, inherit); font-weight: 700; }
+
+/* ── Recent alerts table ─────────────────────────────────────────────── */
+.rtsm-alerts-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12.5px;
+}
+
+.rtsm-alerts-table th {
+    background: #f5f5f5;
+    padding: 6px 9px;
+    text-align: left;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: .4px;
+    color: #555;
+    border-bottom: 1px solid #ddd;
+    white-space: nowrap;
+}
+
+.rtsm-alerts-table td {
+    padding: 6px 9px;
+    border-bottom: 1px solid #f0f0f0;
+    vertical-align: top;
+}
+
+.rtsm-alerts-table tr:hover td { background: #fafafa; }
+.rtsm-alerts-table .ts         { color: #888; white-space: nowrap; font-size: 11px; }
+
+.rtsm-alerts-table .ua-cell {
+    max-width: 200px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: #777;
+    font-size: 11px;
+}
+
+.rtsm-alerts-table .url-cell {
+    max-width: 180px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-family: monospace;
+    font-size: 11.5px;
+}
+
+.rtsm-alerts-table .load-high { color: #dc2626; font-weight: 700; }
+.rtsm-alerts-table .load-mid  { color: #d97706; font-weight: 600; }
+.rtsm-dev-suppressed          { font-size: 11px; color: #888; font-style: italic; }
+
+/* ── Historical analysis ─────────────────────────────────────────────── */
+.rtsm-hist-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 14px;
+    margin-bottom: 18px;
+}
+
+@media (max-width: 900px) { .rtsm-hist-grid { grid-template-columns: 1fr 1fr; } }
+
+.rtsm-hist-cell {
+    background: #f9fafb;
+    border-radius: 6px;
+    padding: 12px;
+    text-align: center;
+    border: 1px solid #e5e7eb;
+}
+
+.rtsm-hist-cell .big { font-size: 28px; font-weight: 700; }
+.rtsm-hist-cell .lbl { font-size: 11px; color: #777; margin-top: 3px; text-transform: uppercase; }
+
+.rtsm-panels {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+}
+
+@media (max-width: 900px) { .rtsm-panels { grid-template-columns: 1fr; } }
+
+.rtsm-mini-table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+.rtsm-mini-table th { font-size: 11px; text-transform: uppercase; letter-spacing: .4px; color: #666; padding: 4px 8px; border-bottom: 1px solid #e5e7eb; }
+.rtsm-mini-table td { padding: 5px 8px; border-bottom: 1px solid #f5f5f5; }
+.rtsm-mini-table tr:last-child td { border-bottom: 0; }
+
+/* ── Log management ──────────────────────────────────────────────────── */
+.rtsm-log-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+}
+
+@media (max-width: 900px) { .rtsm-log-grid { grid-template-columns: 1fr; } }
+
+.rtsm-log-section {
+    background: #f9fafb;
+    border: 1px solid #e5e7eb;
+    border-radius: 6px;
+    padding: 14px;
+    font-size: 13px;
+}
+
+.rtsm-log-section p { margin: 4px 0; }
+
+/* ====================================================================
+   SEVERITY BADGE CLASSES (from JS inline style remediation)
+   ==================================================================== */
+
+/* Base badge — replaces the BADGE_STYLES object in traffic-tab.js */
+.rtsm-severity-badge {
+    display: inline-block;
+    padding: 1px 7px;
+    border-radius: 12px;
+    font-size: 11px;
+    font-weight: 600;
+    margin-right: 10px;
+}
+
+.rtsm-severity-badge-normal {
+    color: #14532d;
+    background: #fff;
+}
+
+.rtsm-severity-badge-elevated {
+    color: #78350f;
+    background: #fde68a;
+}
+
+.rtsm-severity-badge-critical {
+    color: #7c2d12;
+    background: #fdba74;
+}
+
+.rtsm-severity-badge-emergency {
+    color: #7f1d1d;
+    background: #fca5a5;
+}
+
+/* Currently-active threshold trigger label */
+.thresh-trigger {
+    font-weight: 700;
+}

@@ -1,0 +1,76 @@
+/**
+ * Real-Time Server Monitor - License Page Styles
+ * Extracted from inline styles in class-license.php
+ * @since 2.1.6
+ */
+
+/* Pro License Active Notice */
+.rtsm-license-notice {
+    padding: 20px;
+    margin: 20px 0;
+}
+
+.rtsm-license-notice.success {
+    border-left: 4px solid #45852C;
+}
+
+.rtsm-license-notice.info {
+    border-left: 4px solid #0073aa;
+}
+
+.rtsm-license-notice h2 {
+    margin-top: 0;
+}
+
+.rtsm-license-notice ul {
+    margin-left: 20px;
+    list-style: disc;
+}
+
+.rtsm-license-notice ul.features-blue {
+    color: #0073aa;
+}
+
+.rtsm-license-notice ul.features-gray {
+    color: #646970;
+}
+
+.rtsm-license-notice .license-key-display {
+    margin-top: 15px;
+}
+
+/* Upgrade Section */
+.rtsm-license-notice h3.upgrade-heading {
+    margin-top: 25px;
+    color: #d63638;
+}
+
+.rtsm-license-notice .upgrade-cta {
+    margin-top: 20px;
+}
+
+.rtsm-license-notice .button-hero {
+    text-decoration: none;
+}
+
+/* License Form Card */
+.rtsm-license-card {
+    padding: 20px;
+}
+
+/* Dev Mode Section */
+.rtsm-dev-mode {
+    margin-top: 30px;
+    padding: 20px;
+    background: #f5f5f5;
+    border-radius: 4px;
+}
+
+.rtsm-dev-mode code {
+    display: block;
+    background: #333;
+    color: #0f0;
+    padding: 10px;
+    border-radius: 4px;
+    font-family: monospace;
+}

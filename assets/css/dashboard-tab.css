@@ -1,0 +1,458 @@
+/* CloudGuard Dashboard Tab Styles */
+
+.mmi-cloudguard-dashboard {
+    background: #ffffff;
+}
+
+.mmi-cloudguard-header {
+    background: #ffffff;
+    padding: 10px 22px 12px 22px;
+    margin: 0 0 22px 0;
+    border-bottom: 2px solid #45852c;
+}
+
+.mmi-cloudguard-header h3 {
+    margin: 0 0 6px 0;
+    color: #45852c;
+    font-size: 20px;
+    font-weight: 600;
+    line-height: 1.4;
+}
+
+.mmi-cloudguard-header p {
+    margin: 0;
+    color: #646970;
+    font-size: 13px;
+    line-height: 1.5;
+}
+
+.mmi-metrics-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 15px;
+    margin-bottom: 30px;
+}
+
+.mmi-metric-card {
+    background: #ffffff;
+    border: 1px solid #e5e5e5;
+    border-radius: 6px;
+    padding: 18px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    transition: all 0.3s ease;
+}
+
+.mmi-metric-card:hover {
+    border-color: #45852c;
+    box-shadow: 0 2px 8px rgba(69, 133, 44, 0.12);
+    transform: translateY(-1px);
+}
+
+/* Loading Spinner Styles */
+.rtsm-inline-spinner {
+    float: none !important;
+    margin: 0 !important;
+}
+
+/* Script Output */
+.rtsm-script-output {
+    max-height: 200px;
+    overflow: auto;
+    background: #f5f5f5;
+    padding: 10px;
+    border-radius: 4px;
+}
+
+/* Chart Container */
+.rtsm-chart-loading {
+    text-align: center;
+    padding: 40px;
+}
+
+.rtsm-chart-canvas {
+    max-height: 300px;
+}
+
+/* Chart Details */
+.rtsm-chart-details {
+    font-size: 12px;
+}
+
+
+.mmi-metric-card .metric-icon {
+    font-size: 36px;
+    line-height: 1;
+}
+
+.mmi-metric-card .metric-content {
+    flex: 1;
+}
+
+.mmi-metric-card .metric-label {
+    font-size: 11px;
+    color: #646970;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 4px;
+    font-weight: 600;
+}
+
+.mmi-metric-card .metric-value {
+    font-size: 22px;
+    font-weight: 700;
+    color: #1d2327;
+    line-height: 1.3;
+}
+
+.mmi-metric-card .metric-sublabel {
+    font-size: 11px;
+    color: #646970;
+    margin-top: 3px;
+    line-height: 1.4;
+}
+
+.mmi-metric-card.status-healthy .metric-value {
+    color: #45852c;
+}
+
+.mmi-metric-card.status-warning .metric-value {
+    color: #f0b429;
+}
+
+.mmi-metric-card.status-critical .metric-value {
+    color: #d63638;
+}
+
+/* CloudFlare Status Section */
+.mmi-panel-status-section {
+    margin-bottom: 20px;
+}
+
+.mmi-panel-status-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+}
+
+.mmi-panel-status-label {
+    font-weight: 600;
+    color: #1d2327;
+}
+
+.mmi-panel-status-value {
+    font-weight: 600;
+    color: #667eea;
+}
+
+.mmi-panel-spinner {
+    float: none;
+    margin: 0;
+}
+
+/* Advanced Protection Features */
+.mmi-panel-feature-row {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 12px;
+    padding: 10px;
+    background: #f9f9f9;
+    border-radius: 6px;
+}
+
+.mmi-panel-feature-label {
+    font-weight: 500;
+}
+
+.mmi-panel-feature-status {
+    font-weight: 600;
+    color: #45852c;
+}
+
+/* Last Attack Info */
+.mmi-panel-last-attack {
+    padding: 12px;
+    background: #fff7ed;
+    border-left: 3px solid #f0b429;
+    border-radius: 4px;
+}
+
+.mmi-panel-last-attack-label {
+    font-size: 12px;
+    color: #646970;
+    margin-bottom: 4px;
+}
+
+.mmi-panel-last-attack-type {
+    font-weight: 600;
+    color: #1d2327;
+}
+
+.mmi-panel-last-attack-time {
+    font-size: 12px;
+    color: #646970;
+    margin-top: 4px;
+}
+
+/* No Attacks State */
+.mmi-panel-no-attacks {
+    padding: 12px;
+    background: #f0f6ed;
+    border-left: 3px solid #45852c;
+    border-radius: 4px;
+    text-align: center;
+}
+
+.mmi-panel-no-attacks-icon {
+    font-size: 24px;
+}
+
+.mmi-panel-no-attacks-label {
+    font-weight: 600;
+    color: #45852c;
+    margin-top: 4px;
+}
+
+.mmi-panel-no-attacks-sublabel {
+    font-size: 12px;
+    color: #646970;
+    margin-top: 4px;
+}
+
+/* Action Result */
+.mmi-panel-action-result {
+    margin-top: 15px;
+}
+
+.mmi-panel-recent-logs {
+    max-height: 250px;
+    overflow-y: auto;
+    border: 1px solid #e5e5e5;
+    border-radius: 4px;
+}
+
+/* Traffic Chart Header */
+.mmi-panel-chart-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+}
+
+/* Button utility */
+.mmi-panel-btn-under-attack {
+    background: #d63638;
+    border-color: #d63638;
+    color: #fff;
+    grid-column: 1 / -1;
+}
+
+.mmi-panel-btn-icon {
+    font-size: 16px;
+}
+
+.mmi-dashboard-sections {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+}
+
+.mmi-section {
+    background: #ffffff;
+    border: 1px solid #e5e5e5;
+    border-radius: 6px;
+    padding: 22px;
+}
+
+.mmi-section h3 {
+    margin: 0 0 18px 0;
+    font-size: 16px;
+    font-weight: 600;
+    color: #45852c;
+    border-bottom: 2px solid #45852c;
+    padding-bottom: 8px;
+    line-height: 1.4;
+}
+
+.mmi-action-buttons {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+    margin-top: 14px;
+}
+
+.mmi-action-buttons .button {
+    justify-content: center;
+    text-align: center;
+    font-size: 13px;
+    padding: 6px 12px;
+    height: auto;
+    line-height: 1.5;
+}
+
+.mmi-status-indicator {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 5px 10px;
+    border-radius: 4px;
+    font-size: 12px;
+    font-weight: 500;
+    line-height: 1.4;
+}
+
+.mmi-status-indicator.active {
+    background: #f0f6ed;
+    color: #45852c;
+}
+
+.mmi-status-indicator.inactive {
+    background: #f9f9f9;
+    color: #646970;
+}
+
+@media (max-width: 1400px) {
+    .mmi-metrics-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media (max-width: 900px) {
+    .mmi-dashboard-sections {
+        grid-template-columns: 1fr;
+    }
+    
+    .mmi-metrics-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* === RTSM Dashboard Tab Styles === */
+/* Extracted from inline styles in class-rtsm-admin.php */
+
+/* Stats Grid Layout */
+.rtsm-dashboard .rtsm-stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 20px;
+    margin: 20px 0;
+}
+
+/* Stat Card Styling */
+.rtsm-dashboard .rtsm-stat-card {
+    background: white;
+    padding: 20px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+}
+
+.rtsm-dashboard .rtsm-stat-card h3 {
+    margin-top: 0;
+    color: #646970;
+    font-size: 14px;
+    text-transform: uppercase;
+}
+
+.rtsm-dashboard .rtsm-stat-card .stat-value {
+    font-size: 36px;
+    font-weight: 600;
+    margin: 10px 0;
+}
+
+.rtsm-dashboard .rtsm-stat-card .stat-value.cpu {
+    color: #2271b1;
+}
+
+.rtsm-dashboard .rtsm-stat-card .stat-value.memory {
+    color: #45852C;
+}
+
+.rtsm-dashboard .rtsm-stat-card .stat-value.disk {
+    color: #d63638;
+}
+
+.rtsm-dashboard .rtsm-stat-card .stat-value.uptime {
+    font-size: 24px;
+    color: #8c8f94;
+}
+
+.rtsm-dashboard .rtsm-stat-card .stat-subtitle {
+    font-size: 12px;
+    color: #646970;
+}
+
+/* System Information Section */
+.rtsm-dashboard .system-info {
+    margin-top: 30px;
+    background: white;
+    padding: 20px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+}
+
+.rtsm-dashboard .system-info h3 {
+    margin-top: 0;
+}
+
+.rtsm-dashboard .system-info table {
+    margin-top: 15px;
+}
+
+.rtsm-dashboard .system-info td {
+    padding: 10px;
+}
+
+/* Process Section */
+.rtsm-dashboard .process-section {
+    background: white;
+    padding: 20px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    margin-top: 20px;
+}
+
+.rtsm-dashboard .process-section table {
+    margin-top: 15px;
+}
+
+.rtsm-dashboard .process-section .no-data {
+    color: #646970;
+}
+
+/* ====================================================================
+   JS-GENERATED HTML CLASSES (from JS inline style remediation)
+   ==================================================================== */
+
+/* Attacker entry row in top attackers list */
+.rtsm-attacker-row {
+    padding: 8px;
+    border-bottom: 1px solid #e5e5e5;
+}
+
+/* Attacker IP code element — color driven via --chart-primary CSS custom prop */
+.rtsm-attacker-ip {
+    color: var(--chart-primary, #2271b1);
+    font-weight: 600;
+}
+
+/* "No attack data" placeholder message */
+.rtsm-no-data-msg {
+    color: #666;
+    font-style: italic;
+    padding: 20px;
+    text-align: center;
+}
+
+/* Platform Information — secondary/meta line under a stat (OS/kernel, SAPI) */
+.mmi-rtsm-meta-sub {
+    color: #646970;
+    font-size: 12px;
+}
+
+/* Platform Information — monospace value (server hostname) */
+.mmi-rtsm-mono-value {
+    font-family: monospace;
+    font-size: 13px;
+}

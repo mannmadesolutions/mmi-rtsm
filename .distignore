@@ -1,0 +1,2 @@
+# Not shipped in the customer zip (see MMI_Package_Publisher::read_distignore()).
+archive/

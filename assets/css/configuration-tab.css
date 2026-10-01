@@ -1,0 +1,138 @@
+/* Configuration Tab Styles */
+
+/* Welcome notice */
+.mmi-panel-welcome-notice {
+    margin: 20px 0;
+    padding: 25px;
+    background: white;
+    border-left: 4px solid #45852c;
+}
+
+.mmi-panel-welcome-title {
+    margin-top: 0;
+    color: #1d2327;
+    font-size: 22px;
+    font-weight: 600;
+}
+
+.mmi-panel-welcome-intro {
+    font-size: 15px;
+    color: #50575e;
+    margin-bottom: 20px;
+}
+
+/* Setup instructions box */
+.mmi-panel-setup-box {
+    background: #f6f7f7;
+    padding: 20px;
+    border-radius: 4px;
+    border: 1px solid #dcdcde;
+}
+
+.mmi-panel-setup-title {
+    margin-top: 0;
+    color: #1d2327;
+    font-size: 16px;
+    font-weight: 600;
+}
+
+.mmi-panel-setup-list {
+    margin-left: 20px;
+    color: #50575e;
+    line-height: 1.8;
+}
+
+.mmi-panel-setup-link {
+    color: #45852c;
+}
+
+.mmi-panel-help-text {
+    margin: 20px 0 0 0;
+    color: #646970;
+}
+
+/* Connected notice */
+.mmi-panel-connected-notice {
+    margin: 20px 0;
+    padding: 15px;
+    background: white;
+    border-left: 4px solid #45852c;
+}
+
+.mmi-panel-connected-text {
+    margin: 0;
+    color: #1d2327;
+}
+
+/* Form description */
+.mmi-panel-form-description {
+    margin-bottom: 20px;
+}
+
+/* Field status indicators */
+.mmi-panel-status-success {
+    color: #45852C;
+}
+
+.mmi-panel-status-error {
+    color: #d63638;
+}
+
+.mmi-panel-status-warning {
+    color: #dba617;
+}
+
+/* Disabled field styling */
+.mmi-panel-field-disabled {
+    background-color: #f0f0f1;
+    cursor: not-allowed;
+}
+
+/* Test button */
+.mmi-panel-btn-test {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.mmi-panel-btn-test-icon {
+    font-size: 16px;
+    width: 16px;
+    height: 16px;
+}
+
+.mmi-panel-test-result {
+    margin-top: 10px;
+}
+
+/* Pro feature badge */
+.mmi-panel-pro-badge {
+    background: white;
+    color: #45852c;
+    border: 2px solid #45852c;
+    padding: 4px 12px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 600;
+    margin-left: 10px;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    line-height: 1;
+}
+
+/* Disabled form section */
+.mmi-panel-form-section-disabled {
+    opacity: 0.6;
+    pointer-events: none;
+}
+
+/* Inline label */
+.mmi-panel-inline-label {
+    margin: 0;
+}
+
+/* Status dashboard */
+.mmi-panel-status-dashicon {
+    font-size: 16px;
+}

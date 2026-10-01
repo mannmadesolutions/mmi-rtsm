@@ -1,0 +1,691 @@
+/**
+ * MMI CloudFlare Protection - Dashboard Widget Styles
+ */
+
+/* Dashboard Container */
+.rtsm-dashboard-content {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
+
+/* Stats Grid for Dashboard Widget */
+.rtsm-dashboard-content .rtsm-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+    margin-bottom: 20px;
+}
+
+.rtsm-dashboard-content .rtsm-card {
+    background: #f8f9fa;
+    padding: 15px;
+    border-radius: 6px;
+    border-left: 3px solid #2271b1;
+}
+
+.rtsm-dashboard-content .rtsm-card.warning {
+    border-left-color: #dba617;
+}
+
+.rtsm-dashboard-content .rtsm-card.danger {
+    border-left-color: #d63638;
+}
+
+.rtsm-dashboard-content .rtsm-card h4 {
+    margin: 0 0 8px 0;
+    font-size: 11px;
+    color: #666;
+    text-transform: uppercase;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+}
+
+.rtsm-dashboard-content .rtsm-value {
+    font-size: 24px;
+    font-weight: 700;
+    color: #1d2327;
+    line-height: 1.2;
+}
+
+.rtsm-dashboard-content .rtsm-value.small {
+    font-size: 18px;
+}
+
+.rtsm-dashboard-content .rtsm-value.success {
+    color: #45852C;
+}
+
+.rtsm-dashboard-content .rtsm-value.warning {
+    color: #dba617;
+}
+
+.rtsm-dashboard-content .rtsm-value.danger {
+    color: #d63638;
+}
+
+.rtsm-dashboard-content .rtsm-subtitle {
+    font-size: 11px;
+    color: #999;
+    margin-top: 4px;
+}
+
+/* Process Table in Dashboard - Matching Popup Style */
+.rtsm-table-wrapper {
+    overflow-y: auto;
+    overflow-x: hidden;
+    max-height: 300px;
+    margin: 10px 0 0 0;
+    padding: 0;
+    border: 1px solid #e0e0e0;
+    border-radius: 4px;
+}
+
+.rtsm-process-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 11px;
+    table-layout: fixed;
+    margin: 0;
+}
+
+.rtsm-process-table th {
+    text-align: left;
+    padding: 6px 8px;
+    background: #f0f0f1;
+    font-weight: 600;
+    font-size: 11px;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    white-space: nowrap;
+}
+
+.rtsm-process-table td {
+    padding: 6px 8px;
+    border-bottom: 1px solid #f0f0f1;
+    word-wrap: break-word;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* Column widths for 3-column layout */
+.rtsm-process-table th:nth-child(1),
+.rtsm-process-table td:nth-child(1) {
+    width: auto;
+    max-width: 180px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.rtsm-process-table th:nth-child(2),
+.rtsm-process-table td:nth-child(2) {
+    width: 60px;
+    text-align: right;
+}
+
+.rtsm-process-table th:nth-child(3),
+.rtsm-process-table td:nth-child(3) {
+    width: 70px;
+    text-align: right;
+}
+
+.rtsm-process-table tr:hover {
+    background: #f8f9fa;
+}
+
+/* Widget Grid */
+.rtsm-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 15px;
+    margin-bottom: 20px;
+}
+
+.rtsm-card {
+    background: #f8f9fa;
+    padding: 15px;
+    border-radius: 8px;
+    border-left: 4px solid #2271b1;
+}
+
+.rtsm-card.warning {
+    border-left-color: #dba617;
+}
+
+.rtsm-card.danger {
+    border-left-color: #d63638;
+}
+
+.rtsm-card h4 {
+    margin: 0 0 8px 0;
+    font-size: 13px;
+    color: #666;
+    text-transform: uppercase;
+    font-weight: 600;
+}
+
+.rtsm-value {
+    font-size: 24px;
+    font-weight: 700;
+    color: #1d2327;
+}
+
+.rtsm-value.small {
+    font-size: 18px;
+}
+
+.rtsm-value.success {
+    color: #45852C;
+}
+
+.rtsm-value.warning {
+    color: #dba617;
+}
+
+.rtsm-value.danger {
+    color: #d63638;
+}
+
+.rtsm-subtitle {
+    font-size: 11px;
+    color: #999;
+    margin-top: 4px;
+}
+
+/* Widget Stats Display */
+.rtsm-widget-stats {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-bottom: 20px;
+}
+
+.rtsm-stat-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 15px;
+    background: #f8f9fa;
+    border-radius: 6px;
+    border-left: 3px solid #2271b1;
+}
+
+.rtsm-stat-label {
+    font-size: 13px;
+    color: #666;
+    font-weight: 600;
+}
+
+.rtsm-stat-value {
+    font-size: 18px;
+    font-weight: 700;
+    color: #1d2327;
+}
+
+.rtsm-stat-value.success {
+    color: #45852C;
+}
+
+.rtsm-stat-value.warning {
+    color: #dba617;
+}
+
+.rtsm-stat-value.danger {
+    color: #d63638;
+}
+
+/* Process Table */
+.rtsm-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12px;
+}
+
+.rtsm-table th {
+    text-align: left;
+    padding: 6px 8px;
+    background: #f0f0f1;
+    font-weight: 600;
+}
+
+.rtsm-table td {
+    padding: 6px 8px;
+    border-bottom: 1px solid #f0f0f1;
+}
+
+.rtsm-table td:last-child {
+    max-width: 250px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* Animations */
+@keyframes rtsm-pulse {
+    0%, 100% {
+        transform: scale(1);
+        opacity: 1;
+    }
+    50% {
+        transform: scale(1.1);
+        opacity: 0.9;
+    }
+}
+
+/* Premium Preview Container */
+.rtsm-preview-container {
+    margin-top: 20px;
+    position: relative;
+    min-height: 450px;
+    border-radius: 8px;
+}
+
+/* Blurred background content */
+.rtsm-preview-content {
+    filter: blur(3px);
+    opacity: 0.7;
+    pointer-events: none;
+    user-select: none;
+    position: relative;
+    z-index: 1;
+}
+
+/* Premium overlay - VERTICAL GRADIENT */
+.rtsm-premium-overlay {
+    position: absolute;
+    top: 40px;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    min-height: 400px;
+    background: linear-gradient(
+        to bottom,
+        rgba(34, 113, 177, 0) 0%,
+        rgba(34, 113, 177, 0.3) 15%,
+        rgba(72, 52, 212, 0.7) 40%,
+        rgba(72, 52, 212, 0.9) 60%,
+        rgba(139, 69, 255, 1) 100%
+    );
+    display: flex !important;
+    align-items: flex-end;
+    justify-content: center;
+    border-radius: 8px;
+    z-index: 10;
+    padding: 20px;
+    padding-bottom: 30px;
+}
+
+/* Overlay content wrapper */
+.rtsm-overlay-content {
+    text-align: center;
+    width: 100%;
+    max-width: 500px;
+    margin: 0 auto;
+}
+
+/* Lock icon */
+.rtsm-lock-icon {
+    font-size: 56px;
+    margin-bottom: 16px;
+    animation: rtsm-pulse 2s ease-in-out infinite;
+    filter: drop-shadow(0 4px 12px rgba(0,0,0,0.3));
+    line-height: 1;
+}
+
+/* Feature pills */
+.rtsm-feature-pill {
+    display: inline-block;
+    padding: 8px 16px;
+    background: rgba(255,255,255,0.25);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border: 1px solid rgba(255,255,255,0.4);
+    border-radius: 20px;
+    color: #ffffff;
+    font-size: 13px;
+    font-weight: 600;
+    text-shadow: 0 1px 2px rgba(0,0,0,0.2);
+    white-space: nowrap;
+    margin: 4px;
+}
+
+/* CTA Buttons */
+.rtsm-cta-primary,
+.rtsm-cta-secondary {
+    display: inline-flex !important;
+    align-items: center;
+    gap: 8px;
+    padding: 14px 24px;
+    border-radius: 8px;
+    font-size: 14px;
+    text-decoration: none !important;
+    transition: all 0.3s ease;
+    cursor: pointer;
+    margin: 6px;
+    white-space: nowrap;
+}
+
+.rtsm-cta-primary {
+    background: linear-gradient(135deg, #ffffff 0%, #f0f0f0 100%) !important;
+    color: #2271b1 !important;
+    font-weight: 700;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.3);
+    border: none;
+}
+
+.rtsm-cta-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(0,0,0,0.4);
+}
+
+.rtsm-cta-secondary {
+    background: rgba(255,255,255,0.15) !important;
+    color: #ffffff !important;
+    border: 2px solid rgba(255,255,255,0.4);
+    font-weight: 600;
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+}
+
+.rtsm-cta-secondary:hover {
+    background: rgba(255,255,255,0.25) !important;
+    border-color: rgba(255,255,255,0.6);
+}
+
+/* ============================================
+   RESPONSIVE DESIGN - Dev Tools & Mobile
+   ============================================ */
+
+/* Narrow viewports (dev tools open on right/bottom, or mobile) */
+@media (max-width: 1400px) {
+    /* Reduce grid to single column for stats */
+    .rtsm-dashboard-content .rtsm-grid {
+        grid-template-columns: 1fr;
+        gap: 10px;
+    }
+    
+    /* Smaller font sizes for stat values */
+    .rtsm-dashboard-content .rtsm-value {
+        font-size: 20px;
+    }
+    
+    /* Compact stat cards */
+    .rtsm-dashboard-content .rtsm-card {
+        padding: 12px;
+    }
+    
+    /* Make process table scrollable */
+    .rtsm-table-wrapper {
+        max-height: 250px;
+    }
+    
+    .rtsm-process-table {
+        font-size: 10px;
+    }
+    
+    .rtsm-process-table th,
+    .rtsm-process-table td {
+        padding: 5px 6px;
+    }
+    
+    .rtsm-process-table td:nth-child(1) {
+        max-width: 120px;
+    }
+}
+
+/* Very narrow viewports (small dev tools or mobile portrait) */
+@media (max-width: 782px) {
+    /* Stack everything vertically */
+    .rtsm-dashboard-content .rtsm-grid {
+        grid-template-columns: 1fr;
+        gap: 8px;
+    }
+    
+    /* Even smaller text */
+    .rtsm-dashboard-content .rtsm-value {
+        font-size: 18px;
+    }
+    
+    .rtsm-dashboard-content .rtsm-card h4 {
+        font-size: 10px;
+    }
+    
+    /* Compact overlay buttons */
+    .rtsm-overlay-content {
+        padding: 16px;
+    }
+    
+    .rtsm-overlay-content h3 {
+        font-size: 16px !important;
+    }
+    
+    .rtsm-overlay-content p {
+        font-size: 11px !important;
+    }
+    
+    .rtsm-feature-pill {
+        font-size: 9px;
+        padding: 3px 8px;
+    }
+    
+    /* Stack CTA buttons vertically */
+    .rtsm-overlay-content > div:last-child {
+        flex-direction: column !important;
+        gap: 6px !important;
+    }
+    
+    .rtsm-cta-primary,
+    .rtsm-cta-secondary {
+        width: 100%;
+        padding: 8px 12px !important;
+        font-size: 12px !important;
+    }
+    
+    /* Make process table fully scrollable */
+    .rtsm-table-wrapper {
+        max-height: 200px;
+    }
+    
+    .rtsm-process-table {
+        font-size: 10px;
+    }
+    
+    .rtsm-process-table th,
+    .rtsm-process-table td {
+        padding: 4px 5px;
+    }
+    
+    .rtsm-process-table td:nth-child(1) {
+        max-width: 100px;
+    }
+}
+
+/* WordPress admin responsive breakpoint */
+@media (max-width: 600px) {
+    /* Ultra compact mode */
+    .rtsm-dashboard-content {
+        font-size: 12px;
+    }
+    
+    .rtsm-dashboard-content .rtsm-card {
+        padding: 10px;
+    }
+    
+    .rtsm-dashboard-content .rtsm-value {
+        font-size: 16px;
+    }
+    
+    .rtsm-dashboard-content .rtsm-subtitle {
+        font-size: 10px;
+    }
+}
+
+/* Prevent layout shift when hovering/inspecting */
+.rtsm-dashboard-content * {
+    box-sizing: border-box;
+}
+
+/* Ensure widget container respects parent width */
+#rtsm-dashboard-widget-content {
+    max-width: 100%;
+    overflow: hidden;
+}
+
+/* Prevent CTA overlay from breaking layout */
+.rtsm-preview-container {
+    position: relative;
+    overflow: hidden;
+    width: 100%;
+}
+
+/* Loading State */
+.rtsm-dashboard-content .rtsm-loading {
+    text-align: center;
+    padding: 20px;
+}
+
+.rtsm-dashboard-content .rtsm-loading .spinner {
+    float: none;
+    margin: 0 auto;
+}
+
+/* Error Messages */
+.rtsm-dashboard-error {
+    padding: 20px;
+    text-align: center;
+    color: #d63638;
+}
+
+/* Dashboard Widget Headings - Shared with Popup */
+.rtsm-dashboard-widget-heading,
+.rtsm-server-ip-heading {
+    margin: 20px 0 10px;
+    padding: 0;
+    font-size: 14px;
+    color: #50575e;
+    font-weight: 600;
+}
+
+/* Dashboard Widget Section */
+.rtsm-dashboard-section {
+    margin-top: 20px;
+}
+
+/* Dashboard Link Section */
+.rtsm-dashboard-links {
+    margin-top: 15px;
+    text-align: center;
+}
+
+/* CPU Cell Styles */
+.rtsm-cpu-cell-danger {
+    color: #d63638;
+    font-weight: 600;
+}
+
+.rtsm-cpu-cell-warning {
+    color: #dba617;
+    font-weight: 600;
+}
+
+/* Premium Overlay Heading & Description */
+.rtsm-premium-overlay .rtsm-overlay-content h3 {
+    margin: 0 0 10px;
+    color: #ffffff;
+    font-size: 18px;
+    font-weight: 700;
+    text-shadow: 0 2px 8px rgba(0,0,0,0.3);
+}
+
+.rtsm-premium-overlay .rtsm-overlay-content p {
+    color: rgba(255,255,255,0.95);
+    margin: 0 0 12px;
+    font-size: 12px;
+    line-height: 1.4;
+    text-shadow: 0 1px 4px rgba(0,0,0,0.2);
+}
+
+.rtsm-premium-features-pills {
+    margin-bottom: 12px;
+}
+
+.rtsm-premium-cta-buttons {
+    margin-top: 12px;
+    display: flex;
+    gap: 8px;
+    justify-content: center;
+    flex-wrap: wrap;
+}
+
+.rtsm-premium-cta-buttons .rtsm-license-icon {
+    font-size: 16px;
+}
+
+/* ====================================================================
+   JS-GENERATED HTML CLASSES (from JS inline style remediation)
+   ==================================================================== */
+
+/* No process data table cell */
+.rtsm-no-process-td {
+    text-align: center;
+    color: #999;
+}
+
+/* "read-only / upgrade" note next to process heading */
+.rtsm-process-upgrade-note {
+    font-weight: normal;
+    font-size: 11px;
+    color: #999;
+}
+
+/* ── Value-change flash animation ──────────────────────────────────────── */
+@keyframes rtsm-widget-value-flash {
+    0%   { opacity: 1; }
+    30%  { opacity: 0.05; }
+    100% { opacity: 1; }
+}
+
+.rtsm-dashboard-content .rtsm-value-updated {
+    animation: rtsm-widget-value-flash 0.5s ease;
+}
+
+/* ── Widget footer countdown ───────────────────────────────────────────── */
+.rtsm-widget-footer {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 10px;
+    padding-top: 8px;
+    border-top: 1px solid #e0e0e0;
+    font-size: 11px;
+    color: #aaa;
+}
+
+.rtsm-widget-countdown-bar {
+    flex: 1;
+    height: 2px;
+    background: #e8e8e8;
+    border-radius: 1px;
+    overflow: hidden;
+}
+
+.rtsm-widget-countdown-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #2271b1, #46a0e0);
+    border-radius: 1px;
+    width: 100%;
+}
+
+/* Load causes bulleted list */
+.rtsm-cause-list {
+    margin: 4px 0 0;
+    padding-left: 18px;
+    font-size: 12px;
+}
+
+/* Responsive table scroll — replaces .css({display:'block',overflow-x:'auto',...}) */
+.rtsm-table-scroll {
+    display: block;
+    overflow-x: auto;
+    white-space: nowrap;
+}

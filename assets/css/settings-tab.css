@@ -1,0 +1,87 @@
+/**
+ * RTSM Settings Tab Styles
+ */
+
+/* License Status Cards */
+.mmi-settings-content .mmi-panel-card.license-active {
+    border-left-color: #45852C;
+    background: #fff;
+}
+
+.mmi-settings-content .mmi-panel-card.license-active h2 {
+    color: #155724;
+}
+
+.mmi-settings-content .mmi-panel-card.license-inactive {
+    border-left-color: #f0b849;
+    background: #fff3cd;
+}
+
+.mmi-settings-content .mmi-panel-card.license-inactive h2 {
+    color: #996800;
+}
+
+/* License Grid */
+.mmi-panel-stat-grid {
+    display: grid;
+    gap: 16px;
+}
+
+.mmi-panel-stat-grid.two-col {
+    grid-template-columns: 1fr 1fr;
+}
+
+.mmi-panel-stat-grid .mmi-panel-stat-box {
+    background: white;
+}
+
+.mmi-panel-stat-grid .stat-label {
+    font-size: 12px;
+    color: #646970;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.mmi-panel-stat-grid .stat-value {
+    font-size: 14px;
+    margin-top: 8px;
+}
+
+.mmi-panel-stat-grid .stat-value.monospace {
+    font-family: monospace;
+}
+
+/* License info paragraph */
+.mmi-settings-content .license-info {
+    margin: 15px 0 0 0;
+}
+
+.mmi-settings-content .upgrade-cta {
+    margin: 15px 0;
+}
+
+.mmi-settings-content .upgrade-link {
+    margin: 0;
+}
+
+/* System Information Table */
+.mmi-settings-content .widefat th {
+    width: 30%;
+}
+
+/* Form Elements */
+.mmi-settings-content .form-table th {
+    padding: 20px 10px 20px 0;
+}
+
+.mmi-settings-content .form-table td {
+    padding: 20px 10px;
+}
+
+/* Responsive */
+@media (max-width: 782px) {
+    .mmi-panel-stat-grid.two-col {
+        grid-template-columns: 1fr;
+    }
+}

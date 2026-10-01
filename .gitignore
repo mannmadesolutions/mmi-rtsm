@@ -1,0 +1,43 @@
+# IDE and Editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/
+
+# Temporary files
+*.tmp
+*.temp
+.cache/
+
+# Node modules
+node_modules/
+
+# Composer
+vendor/
+
+# Environment files
+.env
+.env.local
+.env.*.local
+
+# Logs / data dumps / local exports (never commit visitor or server data)
+*.log.*
+*.sql
+*.sql.gz
+*.zip
+*.tar.gz
+*.flag
+mmi-logs/
+exports/
+data/
+*.code-workspace
+.env.*
