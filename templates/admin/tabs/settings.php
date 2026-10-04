@@ -219,10 +219,10 @@ $platform_info = class_exists('RTSM_Platform_Detector')
             Auto-Remediation
         </h2>
 
-        <p>When enabled, RTSM will automatically write <code>ABSPATH/.maintenance</code> at Critical and Emergency load levels, taking the site offline for non-admin visitors until load recovers. Incident logging and Cloudflare escalation (if installed) happen regardless of this setting.</p>
+        <p>When enabled, RTSM will automatically write <code>ABSPATH/.maintenance</code> at Critical and Emergency load levels, taking the site offline for non-admin visitors until load recovers. Incident logging, alerts and the <code>rtsm_critical_load</code> / <code>rtsm_emergency_mode_*</code> hooks happen regardless of this setting.</p>
 
         <div class="notice notice-warning inline" class="rtsm-notice-compact">
-            <p class="rtsm-m-0"><strong>⚠️ Think before enabling.</strong> Auto-maintenance protects the server during genuine DDoS events, but will also fire during legitimate traffic spikes (flash sales, viral content). Cloudflare Under Attack Mode — triggered automatically by the Cloudflare integration — is a safer first response and does not take your site offline.</p>
+            <p class="rtsm-m-0"><strong>⚠️ Think before enabling.</strong> Auto-maintenance protects the server during genuine DDoS events, but will also fire during legitimate traffic spikes (flash sales, viral content). Turning on Under Attack Mode in your Cloudflare dashboard is a safer first response and does not take your site offline.</p>
         </div>
 
         <form method="post" action="">

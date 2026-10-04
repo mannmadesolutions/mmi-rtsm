@@ -65,8 +65,7 @@ add_filter( 'rtsm_trusted_proxies', function ( $ranges ) {
 ```
 
 **Audit trail.** When the MMI shared audit log is available, RTSM records
-process kills, manual incident resolution, Cloudflare Under Attack Mode
-on/off, manual cron spawns, license activation/deactivation and settings
+process kills, manual incident resolution, manual cron spawns, license activation/deactivation and settings
 changes (key names only), including denied attempts.
 
 Please report security issues privately to the plugin author rather than in

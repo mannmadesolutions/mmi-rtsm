@@ -74,7 +74,7 @@ class RTSM_Admin {
                 'refreshInterval' => $settings->get_refresh_interval(),
                 'cpuCores'        => $rtsm_cpu_cores,
                 'throttlerUrl'    => admin_url('tools.php?page=wp-throttle'),
-                'cloudflareUrl'   => admin_url('admin.php?page=mmi-cloudflare'),
+                'trafficUrl'      => admin_url('admin.php?page=mmi-rtsm&tab=traffic'),
                 'logsUrl'         => admin_url('admin.php?page=mmi-rtsm&tab=logs'),
                 'processesUrl'    => admin_url('admin.php?page=mmi-rtsm&tab=processes'),
                 'thresholds'      => RTSM_UI_Helpers::get_thresholds(),

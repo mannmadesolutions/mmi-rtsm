@@ -78,28 +78,6 @@ $sc = $severity_colours[ $severity ];
 
 // Auto-remediation setting — drives threshold card copy and conditional links
 $auto_maintenance_on = (bool) RTSM_Settings_Manager::get_instance()->get('rtsm_auto_maintenance', 0);
-// CF integration present — drives conditional links/card
-$cf_available = class_exists('MMI_CF_API');
-
-/* ──────────────────────────────────────────────────────────────────────────
- * 2. Cloudflare protection status
- * ────────────────────────────────────────────────────────────────────────── */
-$cf_configured      = false;
-$cf_bot_rules_ok    = false;
-$cf_circuit_active  = false;
-$cf_circuit_status  = [];
-$cf_retry_at        = false;
-
-if ( $cf_available ) {
-    $cf_api         = MMI_CF_API::instance();
-    $cf_configured  = $cf_api->is_configured();
-    if ( $cf_configured ) {
-        $cf_circuit_active = $cf_api->is_api_locked();
-        $cf_circuit_status = $cf_api->get_circuit_breaker_status() ?: [];
-    }
-}
-$cf_bot_rules_ok = (bool) MMI_Settings::get('mmi_cf_bot_rules_initialized', false );
-$cf_retry_ts     = wp_next_scheduled( 'mmi_cf_retry_bot_rules' );
 
 /* ──────────────────────────────────────────────────────────────────────────
  * 3. Log / alert files
@@ -283,16 +261,8 @@ $workers_color_cls = $php_workers >= 30                ? 'rtsm-color-crit' : ( $
             <h4>🛡️ Block bad actors at Cloudflare (fastest relief)</h4>
             <ul>
                 <li>Go to Cloudflare → Security → WAF — add a block rule for the offending IP or user-agent.</li>
-                <?php if ($cf_available): ?>
-                <li>If the Cloudflare bot rules below are pending, wait for the API lock to clear or clear it manually.</li>
-                <li>Enabling <strong>Under Attack Mode</strong> via the Cloudflare tab gives instant 5-second JS challenge to all visitors — without taking your site offline.</li>
-                <?php else: ?>
                 <li>Enabling Cloudflare Under Attack Mode in your Cloudflare dashboard gives instant 5-second JS challenge to all visitors — without taking your site offline.</li>
-                <?php endif; ?>
             </ul>
-            <?php if ($cf_available): ?>
-            <a class="rtsm-action-link" href="<?php echo esc_url( admin_url('admin.php?page=mmi-rtsm&tab=cloudflare') ); ?>">→ Open Cloudflare Tab</a>
-            <?php endif; ?>
         </div>
 
         <div class="rtsm-mitigation-item">
@@ -320,58 +290,6 @@ $workers_color_cls = $php_workers >= 30                ? 'rtsm-color-crit' : ( $
     </div>
 </div>
 
-<?php /* ── 3. CLOUDFLARE PROTECTION STATUS ────────────────────────────── */ ?>
-<?php if ( $cf_available ): ?>
-<div class="rtsm-card">
-    <h2><span class="dashicons dashicons-cloud"></span> Cloudflare Bot Protection Status</h2>
-
-    <?php if ( ! $cf_configured ): ?>
-        <div class="rtsm-cf-row rtsm-cf-error">
-            <span class="icon">❌</span>
-            <div><strong>API not configured.</strong> Add your Cloudflare Zone ID and API token under <a href="<?php echo esc_url( admin_url('admin.php?page=mmi-rtsm&tab=cloudflare') ); ?>">Cloudflare settings</a>.</div>
-        </div>
-    <?php elseif ( $cf_circuit_active ): ?>
-        <?php
-            $lock_reason   = $cf_circuit_status['reason']     ?? 'Unknown reason';
-            $lock_expires  = $cf_circuit_status['expires_at'] ?? 0;
-            $expires_in_m  = $lock_expires ? round( ($lock_expires - time()) / 60 ) : '?';
-        ?>
-        <div class="rtsm-cf-row rtsm-cf-error">
-            <span class="icon">🔒</span>
-            <div>
-                <strong>API circuit breaker active — all Cloudflare API calls are paused.</strong><br>
-                <span class="rtsm-small-text">Reason: <?php echo esc_html($lock_reason); ?></span><br>
-                <span class="rtsm-small-text">Auto-resets: <strong><?php echo $lock_expires ? esc_html( date('H:i', $lock_expires) . ' UTC (in ~' . $expires_in_m . ' min)' ) : 'unknown'; ?></strong></span>
-                <?php if ($cf_retry_ts): ?>
-                    <br><span class="rtsm-small-text rtsm-warning-text">Bot rule deployment retry scheduled: <strong><?php echo esc_html( date('H:i', $cf_retry_ts) . ' UTC' ); ?></strong></span>
-                <?php endif; ?>
-            </div>
-        </div>
-        <div class="rtsm-cf-row rtsm-cf-warn rtsm-small-text">
-            <span class="icon">ℹ️</span>
-            <div>The circuit breaker was introduced to prevent the Cloudflare auth lock from escalating. Bot protection rules will auto-deploy once it clears. <strong>Do not manually retry until the breaker expires</strong> — it will re-lock the API.</div>
-        </div>
-    <?php elseif ( $cf_bot_rules_ok ): ?>
-        <div class="rtsm-cf-row rtsm-cf-ok">
-            <span class="icon">✅</span>
-            <div><strong>Bot rules deployed.</strong> Cloudflare is blocking/redirecting known scrapers and ?add-to-cart= injection attacks at the edge. Origin server is protected.</div>
-        </div>
-    <?php else: ?>
-        <div class="rtsm-cf-row rtsm-cf-warn">
-            <span class="icon">⏳</span>
-            <div>
-                <strong>Bot rules not yet deployed.</strong>
-                <?php if ($cf_retry_ts): ?>
-                    Scheduled retry at <strong><?php echo esc_html( date('H:i', $cf_retry_ts) . ' UTC' ); ?></strong>.
-                <?php else: ?>
-                    No retry scheduled. <a href="<?php echo esc_url( admin_url('admin.php?page=mmi-rtsm&tab=cloudflare') ); ?>">Deploy manually →</a>
-                <?php endif; ?>
-            </div>
-        </div>
-    <?php endif; ?>
-</div>
-<?php endif; ?>
-
 <?php /* ── 4. AUTO-REMEDIATION THRESHOLDS ──────────────────────────────── */ ?>
 <div class="rtsm-card">
     <h2><span class="dashicons dashicons-shield"></span> Auto-Remediation Thresholds
@@ -390,17 +308,17 @@ $workers_color_cls = $php_workers >= 30                ? 'rtsm-color-crit' : ( $
             [ 'key'=>'elevated',  'label'=>'Elevated',  'load'=>'≥ ' . $thresh_elevated,  'icon'=>'📝', 'bg'=>'#fffbeb', 'border'=>'#fde68a', 'txt'=>'#78350f', 'action'=>'Starts logging every high-load request — URL, IP, user-agent, memory — for forensic analysis. No site impact.', 'active'=> $load_1min >= $thresh_elevated && $load_1min < $thresh_critical ],
             [ 'key'=>'critical',  'label'=>'Critical',  'load'=>'≥ ' . $thresh_critical,  'icon'=>'🛡️', 'bg'=>'#fff7ed', 'border'=>'#fdba74', 'txt'=>'#7c2d12',
               'action' => $auto_maintenance_on
-                ? 'Auto-activates WordPress maintenance mode after 3 checks spanning 120 seconds of sustained load.' . ($cf_available ? ' Cloudflare Under Attack Mode fires via the integration.' : '')
+                ? 'Auto-activates WordPress maintenance mode after 3 checks spanning 120 seconds of sustained load.'
                 : 'Incident flag and detailed logs written. Alerts and hooks fire — enable Auto-Remediation in Settings to also put the site into maintenance mode.',
               'active'=> $load_1min >= $thresh_critical && $load_1min < $thresh_emergency ],
             [ 'key'=>'emergency', 'label'=>'Emergency', 'load'=>'≥ ' . $thresh_emergency, 'icon'=>'🚨', 'bg'=>'#fef2f2', 'border'=>'#fca5a5', 'txt'=>'#7f1d1d',
               'action' => $auto_maintenance_on
-                ? 'Immediate maintenance mode after 2 checks spanning 60 seconds. No extended grace period. All non-admin traffic blocked.' . ($cf_available ? ' Cloudflare emergency lockdown fires simultaneously.' : '')
+                ? 'Immediate maintenance mode after 2 checks spanning 60 seconds. No extended grace period. All non-admin traffic blocked.'
                 : 'Incident flag and detailed logs written. Alerts and hooks fire — enable Auto-Remediation in Settings to also put the site into maintenance mode.',
               'active'=> $load_1min >= $thresh_emergency ],
             [ 'key'=>'recovery',  'label'=>'Recovery',  'load'=>'< ' . $thresh_recovery,  'icon'=>'✅', 'bg'=>'#f0fdf4', 'border'=>'#fff', 'txt'=>'#14532d',
               'action' => $auto_maintenance_on
-                ? 'Auto-resolve: maintenance mode lifted, incident flag cleared.' . ($cf_available ? ' Cloudflare returned to normal security level.' : '')
+                ? 'Auto-resolve: maintenance mode lifted, incident flag cleared.'
                 : 'Incident flag cleared. Logging resumes normal cadence.',
               'active' => $load_1min < $thresh_recovery ],
         ];

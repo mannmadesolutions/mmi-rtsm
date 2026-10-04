@@ -19,8 +19,7 @@ $connections = $collector->get_connections();
 // Get platform info
 $platform_info = RTSM_Platform_Detector::get_instance()->get_platform_info();
 
-// Check for active incidents — same resolver the traffic logger writes to
-// (and mmi-cloudflare-integration also reads), regardless of mmi-hub's presence.
+// Check for active incidents — same resolver the traffic logger writes to.
 $incident_file = rtrim(mmi_shared_lib_log_dir(), '/') . '/active-incident.flag';
 $has_active_incident = file_exists($incident_file);
 $active_incident = null;

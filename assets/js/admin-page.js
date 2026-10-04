@@ -243,14 +243,13 @@
      * @returns {string} HTML string
      */
     function buildCausesHTML(causes) {
-        const cf          = causes.cf          || {};
         const throttler   = causes.throttler   || {};
         const attribution = causes.attribution || {};
         const wpcron      = causes.wpcron      || {};
 
         // Page URLs come from PHP localization
         const throttlerUrl  = rtsmAdmin.throttlerUrl  || '';
-        const cloudflareUrl = rtsmAdmin.cloudflareUrl || '';
+        const trafficUrl    = rtsmAdmin.trafficUrl    || '';
         const logsUrl       = rtsmAdmin.logsUrl       || '';
         const processesUrl  = rtsmAdmin.processesUrl  || '';
         const nonce         = rtsmAdmin.nonce         || '';
@@ -258,25 +257,6 @@
         const admin_url_tools = (rtsmAdmin.ajaxUrl || '').replace(/\/admin-ajax\.php.*$/, '/tools.php');
 
         const items = [];
-
-        /* ── 1. Cloudflare Under Attack Mode ── */
-        if (cf.active) {
-            const detail = cf.auto_escalated
-                ? `Automatically escalated by RTSM to challenge unknown visitors.${cf.since ? ` Active since ${escHtml(cf.since)}.` : ''} Load should drop as CF absorbs the traffic.`
-                : cf.manual_override
-                    ? 'Manually enabled via Cloudflare settings.'
-                    : 'Active — verify state in the Cloudflare panel.';
-            const actions = cloudflareUrl
-                ? `<div class="rtsm-cause-actions"><a href="${escHtml(cloudflareUrl)}" class="button button-secondary rtsm-action-btn"><span class="dashicons dashicons-admin-generic"></span> Open Cloudflare Panel</a></div>`
-                : '';
-            items.push(
-                `<li class="rtsm-cause-item rtsm-cause-info">` +
-                    `<div class="rtsm-cause-header"><span class="dashicons dashicons-shield-alt"></span> <strong>Cloudflare Under Attack Mode</strong> <span class="mmi-badge info">Active</span></div>` +
-                    `<div class="rtsm-cause-detail">${detail}</div>` +
-                    actions +
-                `</li>`
-            );
-        }
 
         /* ── 2. Background Processes ── */
         if (throttler.active) {
@@ -366,20 +346,15 @@
             const isVeryHigh = parseFloat(attribution.web_cpu) >= 150;
             const itemClass  = isVeryHigh ? 'rtsm-cause-critical' : 'rtsm-cause-warning';
             const badgeClass = isVeryHigh ? 'error'      : 'warning';
-            const detail     = cf.auto_escalated
-                ? 'Cloudflare Under Attack Mode is active and should reduce this.'
-                : 'Enable Cloudflare Under Attack Mode to challenge unknown visitors and reduce origin load.';
-            const cfBtn      = !cf.active && nonce
-                ? `<button type="button" class="button button-primary rtsm-action-btn rtsm-enable-cf-uam" data-nonce="${escHtml(nonce)}"><span class="dashicons dashicons-shield-alt"></span> Enable CF Under Attack Mode</button>`
-                : '';
-            const cfPanelBtn = cloudflareUrl
-                ? `<a href="${escHtml(cloudflareUrl)}" class="button button-secondary rtsm-action-btn"><span class="dashicons dashicons-admin-generic"></span> CF Panel</a>`
+            const detail     = 'Open Traffic Analysis to see the top URLs and IPs. If it looks like an attack, block it in Cloudflare (WAF rule or Under Attack Mode in the Cloudflare dashboard).';
+            const trafficBtn = trafficUrl
+                ? `<a href="${escHtml(trafficUrl)}" class="button button-secondary rtsm-action-btn"><span class="dashicons dashicons-chart-line"></span> Traffic Analysis</a>`
                 : '';
             items.push(
                 `<li class="rtsm-cause-item ${itemClass}">` +
                     `<div class="rtsm-cause-header"><span class="dashicons dashicons-chart-area"></span> <strong>High Web Traffic</strong> <span class="mmi-badge ${badgeClass}">${webCpu}% web CPU</span></div>` +
                     `<div class="rtsm-cause-detail">${detail}</div>` +
-                    ((cfBtn || cfPanelBtn) ? `<div class="rtsm-cause-actions">${cfBtn}${cfPanelBtn}</div>` : '') +
+                    (trafficBtn ? `<div class="rtsm-cause-actions">${trafficBtn}</div>` : '') +
                 `</li>`
             );
         }
@@ -399,67 +374,6 @@
             return '<p class="rtsm-cause-none"><span class="dashicons dashicons-yes-alt rtsm-icon-success"></span> No specific cause identified — load may be transient.</p>';
         }
         return `<ul class="rtsm-cause-list">${items.join('')}</ul>`;
-    }
-
-    /**
-     * Enable Cloudflare Under Attack Mode via the RTSM AJAX handler.
-     * Fires the rtsm_critical_load hook server-side which the CF plugin handles.
-     *
-     * @param {HTMLElement} btn  The button that was clicked (disabled while in flight)
-     */
-    function enableCFUnderAttack(btn) {
-        const $btn  = $(btn);
-        const nonce = $btn.data('nonce') || rtsmAdmin.nonce;
-        $btn.prop('disabled', true).text('Enabling…');
-        $.post(rtsmAdmin.ajaxUrl, {
-            action: 'rtsm_enable_cf_under_attack',
-            nonce:  nonce,
-        })
-        .done(function(res) {
-            if (res.success) {
-                const msg = res.data && res.data.confirmed
-                    ? '<span class="rtsm-cf-status-active"><span class="dashicons dashicons-yes-alt"></span> CF Under Attack Mode active. Refreshing…</span>'
-                    : '<span class="rtsm-cf-status-pending"><span class="dashicons dashicons-shield-alt"></span> Request sent — activating shortly…</span>';
-                $btn.closest('.rtsm-cause-actions').html(msg);
-            } else {
-                $btn.prop('disabled', false).text('Enable CF Under Attack Mode');
-                alert('Could not enable CF Under Attack Mode: ' + (res.data || 'unknown error'));
-            }
-        })
-        .fail(function() {
-            $btn.prop('disabled', false).text('Enable CF Under Attack Mode');
-            alert('Request failed. Please try from the Cloudflare panel directly.');
-        });
-    }
-
-    /**
-     * Disable Cloudflare Under Attack Mode via the RTSM AJAX handler.
-     *
-     * @param {HTMLElement} btn
-     */
-    function disableCFUnderAttack(btn) {
-        const $btn  = $(btn);
-        const nonce = $btn.data('nonce') || rtsmAdmin.nonce;
-        $btn.prop('disabled', true).text('Disabling…');
-        $.post(rtsmAdmin.ajaxUrl, {
-            action: 'rtsm_disable_cf_under_attack',
-            nonce:  nonce,
-        })
-        .done(function(res) {
-            if (res.success) {
-                const msg = res.data && res.data.confirmed
-                    ? '<span class="rtsm-cf-status-active"><span class="dashicons dashicons-yes-alt"></span> Under Attack Mode disabled. Refreshing…</span>'
-                    : '<span class="rtsm-cf-status-active"><span class="dashicons dashicons-shield"></span> Disable request sent. Refreshing…</span>';
-                $btn.closest('.rtsm-cause-actions').html(msg);
-            } else {
-                $btn.prop('disabled', false).text('Disable Under Attack Mode');
-                alert('Could not disable CF Under Attack Mode: ' + (res.data || 'unknown error'));
-            }
-        })
-        .fail(function() {
-            $btn.prop('disabled', false).text('Disable Under Attack Mode');
-            alert('Request failed. Please try from the Cloudflare panel directly.');
-        });
     }
 
     /**
@@ -523,17 +437,6 @@
             // Initial update after 2 seconds (let page load first)
             setTimeout(updateDashboardStats, 2000);
         }
-
-        // Delegated handler for "Enable CF Under Attack Mode" buttons
-        // (re-rendered by buildCausesHTML on each refresh, so must use event delegation)
-        $(document).on('click', '.rtsm-enable-cf-uam', function() {
-            enableCFUnderAttack(this);
-        });
-
-        // Delegated handler for "Disable Under Attack Mode" button
-        $(document).on('click', '.rtsm-disable-cf-uam', function() {
-            disableCFUnderAttack(this);
-        });
 
         // Delegated handler for "Trigger Cron Now" buttons
         $(document).on('click', '.rtsm-trigger-cron', function() {

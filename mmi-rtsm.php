@@ -3,7 +3,7 @@
  * Plugin Name: MMI Real-Time Server Monitor
  * Plugin URI: https://mannmade.solutions/plugins/mmi-rtsm
  * Description: Real-time server performance monitoring for WordPress. Included with all MMI Suite licenses.
- * Version: 2.8.1
+ * Version: 2.9.0
  * License: GPL-2.0-or-later
  * License URI: https://www.gnu.org/licenses/gpl-2.0.html
  * Author: MannMade Solutions
@@ -23,7 +23,7 @@ if (!defined('ABSPATH')) {
 // ────────────────────────────────────────────────────────────────
 // 2. Plugin Constants
 // ────────────────────────────────────────────────────────────────
-define('RTSM_VERSION', '2.8.1');
+define('RTSM_VERSION', '2.9.0');
 define('RTSM_PLUGIN_DIR', plugin_dir_path(__FILE__));
 define('RTSM_PLUGIN_URL', plugin_dir_url(__FILE__));
 define('RTSM_PLUGIN_FILE', __FILE__);
@@ -149,10 +149,8 @@ function rtsm_admin_notices() {
     }
 
     // Show a global admin-bar notice when an incident flag is active so admins
-    // see it regardless of which admin page they are on. Shared with
-    // mmi-cloudflare-integration (a reader too) — both must agree on the
-    // same path via mmi_shared_lib_log_dir() regardless of whether mmi-hub
-    // is present; they previously had different hardcoded fallbacks.
+    // see it regardless of which admin page they are on. The path comes from
+    // mmi_shared_lib_log_dir(), the same resolver the traffic logger writes with.
     $incident_file = rtrim(mmi_shared_lib_log_dir(), '/') . '/active-incident.flag';
 
     if (!file_exists($incident_file)) {

@@ -52,9 +52,7 @@ class RTSM_Traffic_Logger {
      */
     private function __construct() {
         // Centralized log directory, resolved the same way regardless of
-        // whether mmi-hub is present (ADR-0006). incident_file specifically
-        // is also read by mmi-cloudflare-integration — both must agree on
-        // the same path.
+        // whether mmi-hub is present (ADR-0006).
         $log_dir = rtrim(mmi_shared_lib_log_dir(), '/');
         $this->log_file = $log_dir . '/server-traffic-analysis.log';
         $this->incident_file = $log_dir . '/active-incident.flag';
@@ -940,7 +938,11 @@ class RTSM_Traffic_Logger {
     /**
      * Get analysis summary
      */
-    public static function get_analysis_summary() {
+    /**
+     * @param string|null $since Site-local 'Y-m-d H:i:s'. Only log lines stamped at or after it
+     *                           are counted; null counts the whole log.
+     */
+    public static function get_analysis_summary( ?string $since = null ) {
         $log_file = rtrim( mmi_shared_lib_log_dir(), '/' ) . '/server-traffic-analysis.log';
 
         if (!file_exists($log_file)) {
@@ -953,7 +955,7 @@ class RTSM_Traffic_Logger {
         // Cache key incorporates the file's last-modified time so a new incident
         // automatically busts the cache without waiting for TTL expiry.
         $mtime     = (int) filemtime( $log_file );
-        $cache_key = 'rtsm_analysis_summary_' . $mtime;
+        $cache_key = 'rtsm_analysis_summary_' . $mtime . ( $since ? '_' . md5( substr( $since, 0, 16 ) ) : '' );
 
         $cached = get_transient( $cache_key );
         if ( $cached !== false ) {
@@ -979,7 +981,11 @@ class RTSM_Traffic_Logger {
         
         foreach ($lines as $line) {
             if (empty($line)) continue;
-            
+
+            if ( $since !== null && preg_match( '/^\[(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2})\]/', $line, $ts ) && $ts[1] < $since ) {
+                continue;
+            }
+
             $stats['total_incidents']++;
             
             // Parse load
@@ -1065,8 +1071,8 @@ class RTSM_Traffic_Logger {
      *
      * Escalation chain:
      *   1. Creates ABSPATH/.maintenance  (WordPress shows built-in maintenance page)
-     *   2. Fires rtsm_emergency_mode_activated hook
-     *      -> mmi-cloudflare-integration listens and enables CF Under Attack Mode
+     *   2. Fires rtsm_emergency_mode_activated hook (for any listener; none in
+     *      this suite since mmi-cloudflare-integration was retired 2026-10-04)
      *
      * NOTE: .maintenance creation is gated on the 'rtsm_auto_maintenance' setting
      * (default OFF). Incident logging and hook firing always occur regardless,
@@ -1089,7 +1095,7 @@ class RTSM_Traffic_Logger {
 
         // Skip .maintenance file when auto_maintenance is off OR dev tools are the source.
         if ( ! $auto_maintenance || $skip_maintenance_file ) {
-            // Fire hook → mmi-cloudflare-integration escalates to CF Under Attack Mode
+            // Fire hook for any listener (e.g. a CDN escalation)
             do_action('rtsm_emergency_mode_activated', $load, $severity);
             return;
         }
@@ -1119,7 +1125,7 @@ class RTSM_Traffic_Logger {
         );
         MMI_Logger::error( $alert_msg, [ 'load' => $load, 'severity' => $severity ], 'server-alerts', 'MMI_Traffic_Logger' );
 
-        // Fire hook → mmi-cloudflare-integration escalates to CF Under Attack Mode
+        // Fire hook for any listener (e.g. a CDN escalation)
         do_action('rtsm_emergency_mode_activated', $load, $severity);
     }
     
@@ -1251,7 +1257,7 @@ class RTSM_Traffic_Logger {
         delete_transient('rtsm_critical_load_first_ts');
         delete_transient('rtsm_critical_load_checks');
 
-        // Fire hook → mmi-cloudflare-integration can disable CF Under Attack Mode
+        // Fire hook for any listener (e.g. to undo a CDN escalation)
         do_action('rtsm_emergency_mode_deactivated', $current_load, $incident_data);
 
         // Log to main traffic log using correct array format

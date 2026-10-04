@@ -19,23 +19,19 @@ if ( ! defined( 'ABSPATH' ) ) {
 $load_causes = $load_causes ?? [];
 $load1       = $load1       ?? 0.0;
 
-$cf          = $load_causes['cf']               ?? [];
 $throttler   = $load_causes['throttler']        ?? [];
 $attribution = $load_causes['attribution']      ?? [];
 $wpcron      = $load_causes['wpcron']           ?? [];
 $mem_pressure= $load_causes['memory_pressure']  ?? [];
-$cf_detection= $load_causes['cf_detection']     ?? [];
 
 /* ── Condition flags ── */
-$has_cf_event       = ! empty( $cf['active'] );
-$has_cf_detection   = ! empty( $cf_detection['active'] ) && ! $has_cf_event;
 $has_throttler      = ! empty( $throttler['active'] );
 $has_dev_load       = ( $attribution['dev_cpu'] ?? 0 ) >= 5;
 $has_backup_load    = ( $attribution['backup_cpu'] ?? 0 ) >= 10;
 $has_cron_overdue   = ( $wpcron['overdue_count'] ?? 0 ) > 0;
 $has_web_spike      = ( $attribution['web_cpu'] ?? 0 ) >= 50;
 $has_mem_pressure   = ! empty( $mem_pressure['high'] );
-$has_any_cause      = $has_cf_event || $has_cf_detection || $has_throttler || $has_dev_load
+$has_any_cause      = $has_throttler || $has_dev_load
                     || $has_backup_load || $has_cron_overdue || $has_web_spike || $has_mem_pressure;
 
 /* ── Overall severity bar (load 0-12 mapped to 0-100%) ── */
@@ -48,7 +44,7 @@ else                          { $severity_label = 'Normal';   $severity_color = 
 
 /* ── Admin page URLs ── */
 $throttler_url  = admin_url( 'tools.php?page=wp-throttle' );
-$cloudflare_url = admin_url( 'admin.php?page=mmi-cloudflare' );
+$traffic_url    = admin_url( 'admin.php?page=mmi-rtsm&tab=traffic' );
 $logs_url       = admin_url( 'admin.php?page=mmi-rtsm&tab=logs' );
 $processes_url  = admin_url( 'admin.php?page=mmi-rtsm&tab=processes' );
 ?>
@@ -84,89 +80,6 @@ $processes_url  = admin_url( 'admin.php?page=mmi-rtsm&tab=processes' );
 
     <?php else : ?>
         <ul class="rtsm-cause-list">
-
-            <?php /* ── 1. Cloudflare Under Attack Mode (Critical / info depending on context) ── */ ?>
-            <?php if ( $has_cf_event ) : ?>
-                <li class="rtsm-cause-item rtsm-cause-info">
-                    <div class="rtsm-cause-header">
-                        <span class="dashicons dashicons-shield-alt"></span>
-                        <strong>Cloudflare Under Attack Mode</strong>
-                        <span class="mmi-badge info">Active</span>
-                    </div>
-                    <div class="rtsm-cause-detail">
-                        <?php if ( ! empty( $cf['auto_escalated'] ) ) : ?>
-                            Automatically escalated by RTSM to challenge unknown visitors.
-                            <?php if ( $cf['since'] ) : ?>
-                                <em>Active since <?php echo esc_html( $cf['since'] ); ?>.</em>
-                            <?php endif; ?>
-                            Load should decrease as Cloudflare absorbs the challenge traffic.
-                            <?php if ( ! empty( $cf_detection['active'] ) ) : ?>
-                                <?php
-                                    $attack_label = $cf_detection['type'] === 'cart_flood'
-                                        ? 'distributed add-to-cart flood'
-                                        : 'distributed product-page flood';
-                                ?>
-                                <br><strong>Trigger:</strong> CF detected a <?php echo esc_html( $attack_label ); ?>
-                                at <?php echo esc_html( $cf_detection['rate'] ); ?> req/min
-                                (<?php echo esc_html( $cf_detection['since_human'] ); ?>).
-                            <?php endif; ?>
-                        <?php elseif ( ! empty( $cf['manual_override'] ) ) : ?>
-                            Manually enabled via Cloudflare settings.
-                        <?php else : ?>
-                            Active — verify state in the Cloudflare Integration panel.
-                        <?php endif; ?>
-                    </div>
-                    <div class="rtsm-cause-actions">
-                        <a href="<?php echo esc_url( $cloudflare_url ); ?>" class="button button-secondary rtsm-action-btn">
-                            <span class="dashicons dashicons-admin-generic"></span> Open Cloudflare Panel
-                        </a>
-                        <button type="button"
-                                class="button button-secondary rtsm-action-btn rtsm-disable-cf-uam"
-                                data-nonce="<?php echo esc_attr( wp_create_nonce( 'rtsm_nonce' ) ); ?>">
-                            <span class="dashicons dashicons-shield"></span> Disable Under Attack Mode
-                        </button>
-                    </div>
-                </li>
-            <?php endif; ?>
-
-            <?php /* ── 1b. CF WAF Rule Deployed — pre-escalation (bot attack detected, UAM not yet active) ── */ ?>
-            <?php if ( $has_cf_detection ) : ?>
-                <?php
-                    $detect_label = $cf_detection['type'] === 'cart_flood'
-                        ? 'Distributed Add-to-Cart Flood'
-                        : 'Distributed Product-Page Flood';
-                ?>
-                <li class="rtsm-cause-item rtsm-cause-warning">
-                    <div class="rtsm-cause-header">
-                        <span class="dashicons dashicons-shield-alt"></span>
-                        <strong>Cloudflare: <?php echo esc_html( $detect_label ); ?></strong>
-                        <span class="mmi-badge warning">WAF Rule Active</span>
-                    </div>
-                    <div class="rtsm-cause-detail">
-                        CF detected a <?php echo esc_html( strtolower( $detect_label ) ); ?>
-                        at <strong><?php echo esc_html( $cf_detection['rate'] ); ?> req/min</strong>
-                        (<?php echo esc_html( $cf_detection['since_human'] ); ?>) and deployed a
-                        managed-challenge WAF rule to intercept the pattern at the edge.
-                        <?php if ( $has_web_spike ) : ?>
-                            Server load is elevated — if it continues to rise, RTSM will escalate
-                            to full Under Attack Mode automatically.
-                        <?php else : ?>
-                            Server load is within normal range — the WAF rule should contain
-                            the attack without requiring Under Attack Mode.
-                        <?php endif; ?>
-                    </div>
-                    <div class="rtsm-cause-actions">
-                        <a href="<?php echo esc_url( $cloudflare_url ); ?>" class="button button-secondary rtsm-action-btn">
-                            <span class="dashicons dashicons-admin-generic"></span> Open Cloudflare Panel
-                        </a>
-                        <button type="button"
-                                class="button button-primary rtsm-action-btn rtsm-enable-cf-uam"
-                                data-nonce="<?php echo esc_attr( wp_create_nonce( 'rtsm_nonce' ) ); ?>">
-                            <span class="dashicons dashicons-shield-alt"></span> Escalate to Under Attack Mode
-                        </button>
-                    </div>
-                </li>
-            <?php endif; ?>
 
             <?php /* ── 2. Background Processes (Warning — running processes drive load) ── */ ?>
             <?php if ( $has_throttler ) : ?>
@@ -308,33 +221,15 @@ $processes_url  = admin_url( 'admin.php?page=mmi-rtsm&tab=processes' );
                     </div>
                     <div class="rtsm-cause-detail">
                         PHP-FPM / web processes are consuming a high share of CPU.
-                        <?php if ( $has_cf_event && ! empty( $cf['auto_escalated'] ) ) : ?>
-                            Cloudflare Under Attack Mode is active and should reduce this.
-                        <?php else : ?>
-                            Enable Cloudflare Under Attack Mode to challenge unknown visitors
-                            and reduce origin load.
-                        <?php endif; ?>
+                        Open Traffic Analysis to see the top URLs and IPs. If it looks like an attack,
+                        block it in Cloudflare (WAF rule or Under Attack Mode in the Cloudflare dashboard).
                     </div>
-                    <?php if ( ! $has_cf_event ) : ?>
-                        <div class="rtsm-cause-actions">
-                            <button type="button"
-                                    class="button button-primary rtsm-action-btn rtsm-enable-cf-uam"
-                                    data-nonce="<?php echo esc_attr( wp_create_nonce( 'rtsm_nonce' ) ); ?>">
-                                <span class="dashicons dashicons-shield-alt"></span> Enable CF Under Attack Mode
-                            </button>
-                            <a href="<?php echo esc_url( $cloudflare_url ); ?>"
-                               class="button button-secondary rtsm-action-btn">
-                                <span class="dashicons dashicons-admin-generic"></span> CF Panel
-                            </a>
-                        </div>
-                    <?php else : ?>
-                        <div class="rtsm-cause-actions">
-                            <a href="<?php echo esc_url( $cloudflare_url ); ?>"
-                               class="button button-secondary rtsm-action-btn">
-                                <span class="dashicons dashicons-admin-generic"></span> CF Panel
-                            </a>
-                        </div>
-                    <?php endif; ?>
+                    <div class="rtsm-cause-actions">
+                        <a href="<?php echo esc_url( $traffic_url ); ?>"
+                           class="button button-secondary rtsm-action-btn">
+                            <span class="dashicons dashicons-chart-line"></span> Traffic Analysis
+                        </a>
+                    </div>
                 </li>
             <?php endif; ?>
 

@@ -40,10 +40,8 @@ class RTSM_Server_Monitor {
         add_action('wp_ajax_rtsm_kill_process', [$this, 'ajax_kill_process']);
         add_action('wp_ajax_rtsm_get_platform_info', [$this, 'ajax_get_platform_info']);
         add_action('wp_ajax_rtsm_resolve_incident', [$this, 'ajax_resolve_incident']);
-        add_action('wp_ajax_rtsm_enable_cf_under_attack', [$this, 'ajax_enable_cf_under_attack']);
-        add_action('wp_ajax_rtsm_disable_cf_under_attack', [$this, 'ajax_disable_cf_under_attack']);
         add_action('wp_ajax_rtsm_spawn_cron', [$this, 'ajax_spawn_cron']);
-        add_action('wp_ajax_mmi_cf_get_diagnostics', [$this, 'ajax_get_diagnostics']);
+        add_action('wp_ajax_rtsm_get_diagnostics', [$this, 'ajax_get_diagnostics']);
     }
     
     public function register_settings() {
@@ -91,77 +89,6 @@ class RTSM_Server_Monitor {
     }
 
     /**
-     * AJAX: Enable Cloudflare Under Attack Mode via the existing rtsm_critical_load hook.
-     * Fires the same pipeline the auto-escalation uses, so the CF plugin handles it consistently.
-     */
-    public function ajax_enable_cf_under_attack() {
-        if (!rtsm_user_can() || !check_ajax_referer('rtsm_nonce', 'nonce', false)) {
-            rtsm_audit('cloudflare.under_attack.enable', ['outcome' => 'denied']);
-            wp_send_json_error('Unauthorised', 403);
-        }
-
-        $collector    = RTSM_Stats_Collector::get_instance();
-        $current_load = $collector->get_load_average()['1min'];
-
-        // Trigger the same hook that auto-escalation fires — CF plugin handles the rest
-        do_action('rtsm_critical_load', $current_load, []);
-
-        // Confirm the CF plugin actually set the flag
-        $confirmed = class_exists('MMI_Settings') && (bool) MMI_Settings::get('mmi_cf_under_attack_active', false);
-        // Invalidate the cause analysis cache so the next poll reflects the new state immediately
-        delete_transient('rtsm_load_cause_analysis');
-
-        rtsm_audit('cloudflare.under_attack.enable', [
-            'object_type' => 'cloudflare_zone',
-            'outcome'     => 'success',
-            'details'     => ['confirmed' => $confirmed, 'load' => $current_load],
-        ]);
-
-        wp_send_json_success([
-            'message'   => $confirmed
-                ? 'Cloudflare Under Attack Mode is now active.'
-                : 'Request sent — Cloudflare plugin will activate Under Attack Mode shortly.',
-            'confirmed' => $confirmed,
-            'load'      => $current_load,
-        ]);
-    }
-
-    /**
-     * AJAX: Disable Cloudflare Under Attack Mode and clear RTSM escalation flags.
-     */
-    public function ajax_disable_cf_under_attack() {
-        if (!rtsm_user_can() || !check_ajax_referer('rtsm_nonce', 'nonce', false)) {
-            rtsm_audit('cloudflare.under_attack.disable', ['outcome' => 'denied']);
-            wp_send_json_error('Unauthorised', 403);
-        }
-
-        // Fire the deactivation hook — CF plugin listens and disables UAM
-        do_action('rtsm_emergency_mode_deactivated', 0, []);
-
-        // Clear RTSM's own escalation flags so the cause panel updates
-        if (class_exists('MMI_Settings')) {
-            MMI_Settings::set('mmi_cf_rtsm_under_attack_active', false);
-            MMI_Settings::set('mmi_cf_rtsm_under_attack_since', 0);
-        }
-        delete_transient('rtsm_load_cause_analysis');
-
-        $confirmed = class_exists('MMI_Settings') && ! (bool) MMI_Settings::get('mmi_cf_under_attack_active', false);
-
-        rtsm_audit('cloudflare.under_attack.disable', [
-            'object_type' => 'cloudflare_zone',
-            'outcome'     => 'success',
-            'details'     => ['confirmed' => $confirmed],
-        ]);
-
-        wp_send_json_success([
-            'message'   => $confirmed
-                ? 'Cloudflare Under Attack Mode has been disabled.'
-                : 'Disable request sent — Cloudflare plugin will deactivate Under Attack Mode shortly.',
-            'confirmed' => $confirmed,
-        ]);
-    }
-
-    /**
      * AJAX: Generate intelligent diagnostics from RTSM's own traffic log.
      *
      * Reads the server-traffic-analysis.log, analyses URL hit patterns, IP
@@ -170,6 +97,7 @@ class RTSM_Server_Monitor {
      * map — all shaped to match what displayDiagnostics() in the JS expects.
      *
      * Nonce: mmi-panel-admin-nonce (issued in diagnostics.php via wp_localize_script)
+     * Action: rtsm_get_diagnostics (renamed from mmi_cf_get_diagnostics in 2.9.0)
      */
     public function ajax_get_diagnostics() {
         if ( ! rtsm_user_can() ) {
@@ -190,10 +118,11 @@ class RTSM_Server_Monitor {
             '24hours' => 1440,
         ];
         $minutes = $interval_map[ $interval ] ?? 60;
-        $cutoff  = time() - ( $minutes * 60 );
+        // The log stamps lines in site-local time (current_time()), so the cutoff is local too.
+        $since   = wp_date( 'Y-m-d H:i:s', time() - ( $minutes * 60 ) );
 
-        // Pull raw summary from the traffic logger.
-        $summary = RTSM_Traffic_Logger::get_analysis_summary();
+        // Pull the summary for the selected period from the traffic logger.
+        $summary = RTSM_Traffic_Logger::get_analysis_summary( $since );
 
         if ( empty( $summary['total_incidents'] ) || $summary['total_incidents'] === 0 ) {
             wp_send_json_success( [
@@ -542,12 +471,11 @@ class RTSM_Server_Monitor {
     /**
      * Gather cross-plugin load cause analysis.
      *
-     * Queries the WP Background-Process Throttler, Cloudflare Integration,
-     * and RTSM's own process attribution to explain WHY load is elevated.
+     * Queries the WP Background-Process Throttler and RTSM's own process
+     * attribution to explain WHY load is elevated.
      * Results are cached for 30 seconds (same TTL as the attribution transient).
      *
      * @return array {
-     *   cloudflare: { active, under_attack, auto_escalated, manual_override, since },
      *   throttler:  { active, running_count, throttled_count, processes[] },
      *   attribution:{ dev_cpu, web_cpu, dev_fraction, suppress_maintenance, top_dev_processes[] },
      *   wpcron:     { overdue_count, due_soon_count },
@@ -557,29 +485,6 @@ class RTSM_Server_Monitor {
         $cached = get_transient('rtsm_load_cause_analysis');
         if ($cached !== false) {
             return $cached;
-        }
-
-        /* ── Cloudflare status ─────────────────────────────────────── */
-        $cf = [
-            'active'          => false,
-            'under_attack'    => false,
-            'auto_escalated'  => false,  // RTSM triggered escalation
-            'manual_override' => false,
-            'since'           => null,
-        ];
-        if (class_exists('MMI_Settings')) {
-            $cf['auto_escalated']  = (bool) MMI_Settings::get('mmi_cf_rtsm_under_attack_active', false);
-            $cf['manual_override'] = (bool) MMI_Settings::get('mmi_cf_manual_override', false)
-                                     && MMI_Settings::get('mmi_cf_manual_override_level', '') === 'under_attack';
-            $cf['under_attack']    = $cf['auto_escalated'] || $cf['manual_override']
-                                     || (bool) MMI_Settings::get('mmi_cf_under_attack_active', false);
-            $cf['active']          = $cf['under_attack'];
-            if ($cf['auto_escalated']) {
-                $since_ts = (int) MMI_Settings::get('mmi_cf_rtsm_under_attack_since', 0);
-                if ($since_ts > 0) {
-                    $cf['since'] = wp_date('H:i:s', $since_ts);
-                }
-            }
         }
 
         /* ── WP Background-Process Throttler ─────────────────────── */
@@ -689,26 +594,7 @@ class RTSM_Server_Monitor {
             }
         }
 
-        /* ── CF-layer attack detection events ────────────────────────────────────── */
-        // When the CF plugin detects a distributed botnet (site-wide rate counter), it deploys
-        // a WAF rule and stores the event type in MMI_Settings. We surface that here so the
-        // cause card can explain WHY CF escalated — separate from whether UAM is active.
-        $cf_detection = ['active' => false, 'type' => '', 'rate' => 0, 'since_human' => ''];
-        if (class_exists('MMI_Settings')) {
-            $attack_type  = (string) MMI_Settings::get('mmi_cf_active_attack_type', '');
-            $attack_since = (int)    MMI_Settings::get('mmi_cf_active_attack_since', 0);
-            // Only surface if detected within the last 30 minutes — stale state is noise.
-            if ($attack_type && $attack_since > 0 && (time() - $attack_since) < 1800) {
-                $cf_detection = [
-                    'active'      => true,
-                    'type'        => $attack_type,
-                    'rate'        => (int) MMI_Settings::get('mmi_cf_active_attack_rate', 0),
-                    'since_human' => wp_date('H:i:s', $attack_since),
-                ];
-            }
-        }
-
-        $result = compact('cf', 'throttler', 'attribution', 'wpcron', 'memory_pressure', 'cf_detection');
+        $result = compact('throttler', 'attribution', 'wpcron', 'memory_pressure');
         set_transient('rtsm_load_cause_analysis', $result, 30);
         return $result;
     }

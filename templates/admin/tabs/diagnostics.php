@@ -61,47 +61,11 @@ if (!$has_premium_access) {
     return;
 }
 
-// Premium user - show diagnostics interface
-// Check if the MMI Cloudflare Integration plugin is active
-$cf_active = defined('MMI_CLOUDFLARE_VERSION') && class_exists('MMI_CF_Admin');
-
-if (!$cf_active) {
-    ?>
-    <div class="mmi-panel-card">
-        <div class="mmi-rtsm-empty-state-card">
-            <span class="dashicons dashicons-cloud"></span>
-            <h2>Cloudflare Integration Not Active</h2>
-            <p class="mmi-rtsm-empty-state-intro">
-                Intelligent Diagnostics is powered by the <strong>MMI Cloudflare Integration</strong> plugin.
-                It analyses real edge-traffic data to distinguish external attacks from code-level issues.
-            </p>
-            <div class="mmi-rtsm-empty-state-box">
-                <p>What you get with Cloudflare Integration:</p>
-                <ul>
-                    <li>&#x1F6E1;&#xFE0F; <strong>Bot attack detection</strong> &mdash; XML-RPC hammering, brute force, scraper swarms</li>
-                    <li>&#x1F527; <strong>Code issue analysis</strong> &mdash; heavy AJAX handlers, WP-Cron pile-ups, WooCommerce bottlenecks</li>
-                    <li>&#x26A1; <strong>Under Attack Mode automation</strong> &mdash; RTSM triggers Cloudflare protection automatically when load spikes</li>
-                    <li>&#x1F4CA; <strong>Edge traffic data</strong> &mdash; bot vs human ratios and top offending IPs at the CDN level</li>
-                </ul>
-            </div>
-            <a href="<?php echo esc_url( admin_url('admin.php?page=mmi-dashboard') ); ?>" class="button button-primary button-large mmi-action-btn mmi-rtsm-empty-state-cta">
-                <span class="dashicons dashicons-admin-plugins"></span>
-                Manage MMI Plugins
-            </a>
-            <p class="mmi-rtsm-empty-state-footnote">
-                Already installed? <a href="<?php echo esc_url( admin_url('plugins.php') ); ?>">Check Plugins list</a> to make sure it&rsquo;s activated.
-            </p>
-        </div>
-    </div>
-    <?php
-    return;
-}
-
-// Include necessary assets for CloudFlare diagnostics integration
+// Licensed - show the diagnostics interface. It reads RTSM's own traffic log.
 wp_enqueue_script('chartjs', RTSM_PLUGIN_URL . 'assets/vendor/chart.umd.min.js', [], '4.4.1', true);
-wp_enqueue_style('mmi-panel-diagnostics', plugin_dir_url(dirname(dirname(dirname(__FILE__)))) . 'assets/css/legacy-cloudflare-diagnostics.css', ['mmi-suite-common'], RTSM_VERSION);
-wp_enqueue_script('mmi-panel-diagnostics', plugin_dir_url(dirname(dirname(dirname(__FILE__)))) . 'assets/js/legacy-cloudflare-diagnostics.js', ['jquery', 'chartjs'], RTSM_VERSION, true);
-wp_localize_script('mmi-panel-diagnostics', 'mmiCfAdmin', [
+wp_enqueue_style('rtsm-diagnostics', RTSM_PLUGIN_URL . 'assets/css/diagnostics.css', ['mmi-suite-common'], RTSM_VERSION);
+wp_enqueue_script('rtsm-diagnostics', RTSM_PLUGIN_URL . 'assets/js/diagnostics.js', ['jquery', 'chartjs'], RTSM_VERSION, true);
+wp_localize_script('rtsm-diagnostics', 'rtsmDiag', [
     'ajaxUrl' => admin_url('admin-ajax.php'),
     'nonce' => wp_create_nonce('mmi-panel-admin-nonce')
 ]);
@@ -170,7 +134,7 @@ wp_localize_script('mmi-panel-diagnostics', 'mmiCfAdmin', [
                 <strong>Indicators:</strong> High bot traffic (>70%), XML-RPC/wp-login hammering, single IP responsible for >50% of requests.
             </p>
             <p>
-                <strong>Action:</strong> Block IPs, enable CloudFlare "Under Attack Mode", disable XML-RPC.
+                <strong>Action:</strong> Block IPs, turn on Under Attack Mode in your Cloudflare dashboard, disable XML-RPC.
             </p>
         </div>
         <div class="scenario-box scenario-code-issue">

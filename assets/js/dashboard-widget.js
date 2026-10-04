@@ -260,10 +260,6 @@
         if (load1 >= THRESHOLDS.loadWarn && data.load_causes) {
             const causes = data.load_causes;
             const items = [];
-            if (causes.cloudflare && causes.cloudflare.under_attack) {
-                const since = causes.cloudflare.since ? ` since ${causes.cloudflare.since}` : '';
-                items.push(`🛡️ Cloudflare Under Attack Mode active${since}`);
-            }
             if (causes.throttler && causes.throttler.active) {
                 items.push(`⚙️ Throttler: ${causes.throttler.running_count} running / ${causes.throttler.throttled_count} throttled`);
             }
