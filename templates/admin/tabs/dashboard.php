@@ -140,16 +140,6 @@ $show_causes = $load['1min'] >= 4.0 || $has_active_incident || ( $load_causes['w
         </div>
     </div>
 
-    <!-- Cloudflare Integration promo (only shown when plugin is not active) -->
-    <?php if ( ! class_exists('MMI_CF_API') ): ?>
-    <div class="rtsm-info-box m-top-large">
-        <p class="margin-none">
-            <strong>💡 Extend your monitoring:</strong> The <strong>MMI Cloudflare Integration</strong> plugin adds bot attack detection, Under Attack Mode automation, and traffic diagnostics to this dashboard.
-            <a href="<?php echo esc_url( admin_url('admin.php?page=mmi-dashboard') ); ?>">Learn more →</a>
-        </p>
-    </div>
-    <?php endif; ?>
-
     <!-- Auto-refresh indicator -->
     <div class="rtsm-info-box m-top-xlarge text-center">
         Auto-refreshing every <strong>30 seconds</strong>

@@ -370,24 +370,6 @@ $workers_color_cls = $php_workers >= 30                ? 'rtsm-color-crit' : ( $
         </div>
     <?php endif; ?>
 </div>
-<?php else: ?>
-<div class="rtsm-card">
-    <h2><span class="dashicons dashicons-cloud"></span> Cloudflare Bot Protection</h2>
-    <div class="rtsm-cf-row rtsm-cf-row--promo">
-        <span class="icon rtsm-cf-row--promo-icon">💡</span>
-        <div>
-            <strong>Add edge-level bot blocking to your site.</strong>
-            <p class="rtsm-cf-row--promo-text">
-                The <strong>MMI Cloudflare Integration</strong> plugin can automatically block bots, scrapers, and brute-force attacks at the Cloudflare edge — before they reach your server.
-                It also integrates with RTSM to activate <em>Under Attack Mode</em> automatically when load spikes.
-            </p>
-            <a href="<?php echo esc_url( admin_url('admin.php?page=mmi-dashboard') ); ?>" class="button button-secondary mmi-action-btn">
-                <span class="dashicons dashicons-admin-plugins rtsm-cf-row--promo-cta-icon"></span>
-                Learn about MMI Plugins
-            </a>
-        </div>
-    </div>
-</div>
 <?php endif; ?>
 
 <?php /* ── 4. AUTO-REMEDIATION THRESHOLDS ──────────────────────────────── */ ?>

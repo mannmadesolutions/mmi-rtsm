@@ -15,11 +15,10 @@ MMI Suite licenses.
   active while load was elevated, with an automatic verdict (Diagnostics tab)
 - Incident tracking with automatic resolution when load normalises
 - Optional auto-maintenance mode at Critical/Emergency load (off by default)
-- Optional escalation to Cloudflare Under Attack Mode when the separate
-  *MMI Cloudflare Integration* plugin is installed (RTSM fires the
-  `rtsm_critical_load`, `rtsm_emergency_mode_activated` and
-  `rtsm_emergency_mode_deactivated` actions; it holds no Cloudflare
-  credentials itself)
+- Fires `rtsm_critical_load`, `rtsm_emergency_mode_activated` and
+  `rtsm_emergency_mode_deactivated` actions so other code can react to load
+  (for example, by escalating at a CDN). RTSM holds no CDN or Cloudflare
+  credentials itself
 - Hourly WP-Cron backlog check with an email alert to the site admin
 
 Some features use `shell_exec()` (`ps`, `nproc`, `uptime`, `free`); on hosts
