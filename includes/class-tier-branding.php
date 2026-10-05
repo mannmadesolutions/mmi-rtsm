@@ -77,17 +77,13 @@ class RTSM_Tier_Branding {
      * @return string HTML
      */
     public static function render_badge( string $state ): string {
-        $config = self::get( $state );
+        // Shared .mmi-badge (mmi-suite-common.css → STATUS BADGES): success
+        // when licensed, the neutral base badge when free.
+        $variant = self::normalise( $state ) === 'licensed' ? ' success' : '';
         return sprintf(
-            '<span class="rtsm-tier-badge %s" style="--mmi-tier-bg:%s;--mmi-tier-fg:%s;">
-                <span class="dashicons %s"></span>
-                <span class="rtsm-tier-label">%s</span>
-            </span>',
-            esc_attr( $config['css_class'] ),
-            esc_attr( $config['badge_bg'] ),
-            esc_attr( $config['badge_text'] ),
-            esc_attr( $config['icon'] ),
-            esc_html( $config['label'] )
+            '<span class="mmi-badge mmi-badge-lg%s">%s</span>',
+            esc_attr( $variant ),
+            esc_html( self::get( $state, 'label' ) ?? 'Free' )
         );
     }
 
@@ -99,7 +95,7 @@ class RTSM_Tier_Branding {
      * @return string HTML
      */
     public static function render_tab_badge( string $required_tier = 'licensed' ): string {
-        return '<span class="mmi-badge mmi-badge-premium rtsm-tier-licensed">SUITE</span>';
+        return '<span class="mmi-badge info">Suite</span>';
     }
 
     /**

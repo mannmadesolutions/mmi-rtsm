@@ -42,6 +42,8 @@ class RTSM_Server_Monitor {
         add_action('wp_ajax_rtsm_resolve_incident', [$this, 'ajax_resolve_incident']);
         add_action('wp_ajax_rtsm_spawn_cron', [$this, 'ajax_spawn_cron']);
         add_action('wp_ajax_rtsm_get_diagnostics', [$this, 'ajax_get_diagnostics']);
+        add_action('wp_ajax_rtsm_download_log', [$this, 'ajax_download_log']);
+        add_action('wp_ajax_rtsm_clear_log', [$this, 'ajax_clear_log']);
     }
     
     public function register_settings() {
@@ -690,6 +692,74 @@ class RTSM_Server_Monitor {
         spawn_cron();
         rtsm_audit('cron.spawn', ['outcome' => 'success']);
         wp_send_json_success(['message' => 'WP-Cron spawn triggered.']);
+    }
+
+    /**
+     * Resolve a log key from the Logs/Traffic tab buttons to its file.
+     * Only these two files can be downloaded or cleared.
+     *
+     * @param string $key traffic|alert
+     * @return string|null Absolute path, or null for an unknown key.
+     */
+    private static function log_file_for_key($key) {
+        $files = [
+            'traffic' => 'server-traffic-analysis.log',
+            'alert'   => 'server-alerts.log',
+        ];
+        if (!isset($files[$key])) {
+            return null;
+        }
+        return rtrim(mmi_shared_lib_log_dir(), '/') . '/' . $files[$key];
+    }
+
+    /**
+     * Stream a log file to the browser as a download (GET, nonce in URL).
+     */
+    public function ajax_download_log() {
+        if (!rtsm_user_can() || !check_ajax_referer('rtsm_nonce', 'nonce', false)) {
+            rtsm_audit('log.download', ['outcome' => 'denied']);
+            wp_die('Unauthorised', 403);
+        }
+        $key  = sanitize_key($_GET['log'] ?? '');
+        $file = self::log_file_for_key($key);
+        if (!$file) {
+            wp_die('Unknown log', 400);
+        }
+        if (!is_readable($file)) {
+            wp_die('This log is empty or has not been written yet.', 404);
+        }
+        rtsm_audit('log.download', ['outcome' => 'success', 'log' => $key]);
+
+        nocache_headers();
+        // octet-stream, not text/plain: WebKit renders a text/plain
+        // attachment in the tab instead of downloading it.
+        header('Content-Type: application/octet-stream');
+        header('Content-Disposition: attachment; filename="' . basename($file, '.log') . '-' . gmdate('Y-m-d-His') . '.log"');
+        header('Content-Length: ' . filesize($file));
+        readfile($file);
+        exit;
+    }
+
+    /**
+     * Empty a log file. The file is truncated, not deleted, so the
+     * writers keep appending to the same path.
+     */
+    public function ajax_clear_log() {
+        if (!rtsm_user_can() || !check_ajax_referer('rtsm_nonce', 'nonce', false)) {
+            rtsm_audit('log.clear', ['outcome' => 'denied']);
+            wp_send_json_error(['message' => 'Unauthorised'], 403);
+        }
+        $key  = sanitize_key($_POST['log'] ?? '');
+        $file = self::log_file_for_key($key);
+        if (!$file) {
+            wp_send_json_error(['message' => 'Unknown log'], 400);
+        }
+        if (file_exists($file) && false === @file_put_contents($file, '', LOCK_EX)) {
+            rtsm_audit('log.clear', ['outcome' => 'failed', 'log' => $key]);
+            wp_send_json_error(['message' => 'Could not clear the log file (not writable).']);
+        }
+        rtsm_audit('log.clear', ['outcome' => 'success', 'log' => $key]);
+        wp_send_json_success(['message' => 'Log cleared.']);
     }
 
     /**

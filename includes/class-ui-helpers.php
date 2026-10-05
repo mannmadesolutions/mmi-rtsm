@@ -42,6 +42,7 @@ class RTSM_UI_Helpers {
                 'icon' => '🔴',
                 'label' => 'Critical',
                 'class' => 'rtsm-stat-critical',
+                'variant' => 'error',
             ];
         } elseif ($load1 >= 6.0) {
             return [
@@ -50,6 +51,7 @@ class RTSM_UI_Helpers {
                 'icon' => '🟡',
                 'label' => 'High',
                 'class' => 'rtsm-stat-warning',
+                'variant' => 'warning',
             ];
         } elseif ($load1 >= 4.0) {
             return [
@@ -58,6 +60,7 @@ class RTSM_UI_Helpers {
                 'icon' => '🟡',
                 'label' => 'Elevated',
                 'class' => 'rtsm-stat-warning',
+                'variant' => 'warning',
             ];
         } else {
             return [
@@ -66,6 +69,7 @@ class RTSM_UI_Helpers {
                 'icon' => '✅',
                 'label' => 'Normal',
                 'class' => 'rtsm-stat-normal',
+                'variant' => 'success',
             ];
         }
     }
@@ -84,6 +88,7 @@ class RTSM_UI_Helpers {
                 'icon' => '🔴',
                 'label' => 'Critical',
                 'class' => 'rtsm-stat-critical',
+                'variant' => 'error',
             ];
         } elseif ($percent >= 75) {
             return [
@@ -92,6 +97,7 @@ class RTSM_UI_Helpers {
                 'icon' => '🟡',
                 'label' => 'Warning',
                 'class' => 'rtsm-stat-warning',
+                'variant' => 'warning',
             ];
         } else {
             return [
@@ -100,6 +106,7 @@ class RTSM_UI_Helpers {
                 'icon' => '✅',
                 'label' => 'Normal',
                 'class' => 'rtsm-stat-normal',
+                'variant' => 'success',
             ];
         }
     }
@@ -118,6 +125,7 @@ class RTSM_UI_Helpers {
                 'icon' => '🔴',
                 'label' => 'Critical',
                 'class' => 'rtsm-stat-critical',
+                'variant' => 'error',
             ];
         } elseif ($percent >= 60) {
             return [
@@ -126,6 +134,7 @@ class RTSM_UI_Helpers {
                 'icon' => '🟡',
                 'label' => 'Warning',
                 'class' => 'rtsm-stat-warning',
+                'variant' => 'warning',
             ];
         } else {
             return [
@@ -134,223 +143,130 @@ class RTSM_UI_Helpers {
                 'icon' => '✅',
                 'label' => 'Normal',
                 'class' => 'rtsm-stat-normal',
+                'variant' => 'success',
             ];
         }
     }
 
     /**
-     * Get status badge CSS classes
-     * 
-     * @param string $status Status key
-     * @return string CSS class
+     * Page-section header (suite standard: AGENTS.md → Admin Page Shell →
+     * "Page body — page sections"). Callers wrap it themselves:
+     *
+     *   <div class="mmi-process-section">
+     *     <?php echo RTSM_UI_Helpers::section_header( … ); ?>
+     *     <div class="mmi-section-content">…</div>
+     *   </div>
+     *
+     * @param string $icon    Dashicon name without the "dashicons-" prefix.
+     * @param string $title   Plain-text title (escaped here).
+     * @param string $desc    Plain-text one-line description (escaped here).
+     * @param string $extra   Trusted HTML placed after the title (a badge).
+     * @param string $actions Trusted HTML for the right-hand side (primary
+     *                        button, status text) — a section's main action
+     *                        belongs here, never in .mmi-header-actions.
+     * @return string
      */
-    public static function get_status_class($status) {
-        $classes = [
-            'critical' => 'mmi-status-critical',
-            'error' => 'mmi-status-error',
-            'warning' => 'mmi-status-warning',
-            'elevated' => 'mmi-status-elevated',
-            'high' => 'mmi-status-high',
-            'success' => 'mmi-status-success',
-            'normal' => 'mmi-status-normal',
-            'info' => 'mmi-status-info'
-        ];
-        
-        return isset($classes[$status]) ? $classes[$status] : 'mmi-status-default';
+    public static function section_header($icon, $title, $desc = '', $extra = '', $actions = '') {
+        ob_start();
+        ?>
+        <div class="mmi-section-header">
+            <div>
+                <h3 class="mmi-process-section-header"><span class="dashicons dashicons-<?php echo esc_attr($icon); ?>"></span> <?php echo esc_html($title); ?><?php echo $extra; // phpcs:ignore WordPress.Security.EscapeOutput -- trusted, built escaped by the caller. ?></h3>
+                <?php if ($desc !== ''): ?>
+                    <p class="mmi-process-section-description"><?php echo esc_html($desc); ?></p>
+                <?php endif; ?>
+            </div>
+            <?php if ($actions !== ''): ?>
+                <div class="rtsm-section-actions"><?php echo $actions; // phpcs:ignore WordPress.Security.EscapeOutput -- trusted, built escaped by the caller. ?></div>
+            <?php endif; ?>
+        </div>
+        <?php
+        return ob_get_clean();
     }
 
     /**
-     * Get colored status HTML
-     * 
-     * @param string $label Status label
-     * @param string $color Hex color code
-     * @param string $value Optional value to display
-     * @return string HTML span with color
+     * Thin progress bar (RTSM-local: the shared library has no meter
+     * primitive). $variant is a shared state word: success|warning|error|info.
+     *
+     * @param float  $pct     0-100.
+     * @param string $variant
+     * @param string $id      Optional id on the fill (JS live updates).
+     * @return string
      */
-    public static function get_colored_status($label, $color, $value = null) {
-        $display = $value !== null ? $label . ' (' . $value . ')' : $label;
-        // Use CSS classes instead of inline styles
-        $class = 'status-' . self::color_to_class($color);
-        return '<span class="' . esc_attr($class) . '">' . esc_html($display) . '</span>';
-    }
-    
-    /**
-     * Convert hex color to CSS class
-     */
-    private static function color_to_class($color) {
-        switch($color) {
-            case '#dc3232':
-            case '#d63638':
-                return 'critical';
-            case '#f0b849':
-                return 'warning';
-            case '#45852C':
-                return 'success';
-            case '#2271b1':
-                return 'info';
-            default:
-                return 'info';
-        }
+    public static function progress_bar($pct, $variant = 'info', $id = '') {
+        $pct = min(100, max(0, (float) $pct));
+        return sprintf(
+            '<div class="rtsm-progress is-%1$s"%3$s><span class="rtsm-progress-fill" style="--fill-pct:%2$s%%;"></span></div>',
+            esc_attr($variant),
+            esc_attr(number_format($pct, 1, '.', '')),
+            $id ? ' id="' . esc_attr($id) . '"' : ''
+        );
     }
 
     /**
-     * Get threshold status HTML for metrics comparison
-     * 
-     * @param float $value Current value
-     * @param float $warning_level Warning threshold
-     * @param float $critical_level Critical threshold
-     * @param string $format Format string (e.g., "%.2f" for numbers)
-     * @param string $suffix Suffix to append (e.g., "%" or "%")
-     * @return string HTML with status styling
+     * Traffic severity → shared state word. Must match traffic-tab.js's
+     * SEVERITY map (the JS re-renders the same badge on every poll).
      */
-    public static function get_threshold_status($value, $warning_level, $critical_level, $format = '%.2f', $suffix = '') {
-        if ($value >= $critical_level) {
-            $icon = '🔴';
-            $label = 'Critical';
-            $class = 'status-critical';
-        } elseif ($value >= $warning_level) {
-            $icon = '🟡';
-            $label = 'Warning';
-            $class = 'status-warning';
-        } else {
-            $icon = '✅';
-            $label = 'Normal';
-            $class = 'status-success';
-        }
+    const SEVERITY_VARIANTS = [
+        'NORMAL'    => ['variant' => 'success', 'icon' => '✅'],
+        'ELEVATED'  => ['variant' => 'warning', 'icon' => '⚠️'],
+        'CRITICAL'  => ['variant' => 'error',   'icon' => '🔴'],
+        'EMERGENCY' => ['variant' => 'error',   'icon' => '🚨'],
+    ];
 
-        $formatted = sprintf($format, $value) . $suffix;
-        return '<span class="' . esc_attr($class) . '">' . $icon . ' ' . $label . ' (' . $formatted . ')</span>';
+    /**
+     * Severity badge (shared .mmi-badge) for traffic/alert severities.
+     *
+     * @param string $sev NORMAL|ELEVATED|CRITICAL|EMERGENCY (unknown → NORMAL look).
+     * @return string
+     */
+    public static function severity_badge($sev) {
+        $sev  = strtoupper((string) $sev);
+        $conf = self::SEVERITY_VARIANTS[$sev] ?? self::SEVERITY_VARIANTS['NORMAL'];
+        return sprintf('<span class="mmi-badge %s">%s %s</span>', esc_attr($conf['variant']), $conf['icon'], esc_html($sev));
     }
 
     /**
-     * Render a stat box component
-     * 
-     * @param array $args Arguments for the stat box
-     *        - 'label' (string) Stat label
-     *        - 'value' (mixed) Stat value
-     *        - 'subtitle' (string) Optional subtitle
-     *        - 'color' (string) Optional left border color
-     *        - 'status' (string) Optional status class
-     *        - 'icon' (string) Optional icon HTML
-     * @return string HTML for stat box
+     * Render a shared .mmi-stat-box KPI tile.
+     *
+     * @param array $args {
+     *     @type string     $label    Tile label.
+     *     @type string     $value    Value (trusted HTML allowed via wp_kses_post).
+     *     @type string     $subtitle Optional meta line under the value.
+     *     @type string     $variant  success|warning|error|info|'' (neutral).
+     *     @type string     $icon     Optional icon/emoji before the value.
+     *     @type string     $id       Optional id on the tile (JS live updates).
+     *     @type float|null $progress 0-100 renders a progress bar when set.
+     * }
+     * @return string
      */
     public static function render_stat_box($args) {
-        $defaults = [
+        $args = wp_parse_args($args, [
             'label'    => '',
             'value'    => '',
             'subtitle' => '',
-            'color'    => '#2271b1',
-            'status'   => '',
+            'variant'  => '',
             'icon'     => '',
-            'classes'  => '',     // Applied to .stat-value only (NOT outer div — avoids WP div.error conflicts)
-            'id'       => '',     // Optional id for outer div (used by JS live-update)
-            'progress' => null,   // Float 0-100: renders a progress bar when set
-            'progress_color' => null, // Override bar fill color (defaults to border color)
-        ];
-        
-        $args = wp_parse_args($args, $defaults);
-        
-        $border_class = 'stat-box-' . self::color_to_class($args['color']);
-        // Outer div: only the border-colour variant class — never 'error'/'warning'/'success'
-        // Adding those to the outer div triggers WordPress admin's div.error / div.warning styles
-        $class = trim('mmi-panel-stat-box ' . $border_class);
+            'id'       => '',
+            'progress' => null,
+        ]);
 
-        $id_attr = $args['id'] ? ' id="' . esc_attr($args['id']) . '"' : '';
-
-        // Value element: use rtsm-stat-* classes that don't conflict with WP admin notices
-        $value_classes = trim($args['status'] . ' ' . $args['classes']);
-
-        // Progress bar
-        $show_progress = $args['progress'] !== null;
-        $progress_pct  = $show_progress ? min(100, max(0, (float) $args['progress'])) : 0;
-        $bar_color     = $args['progress_color'] ?? $args['color'];
+        // `inline` opts the tile out of WP core's div.error relocation
+        // (AGENTS.md → "Never Give a <div> a Bare error … Class Token").
+        $class = trim('mmi-stat-box inline ' . $args['variant']);
 
         ob_start();
         ?>
-        <div class="<?php echo esc_attr($class); ?>"<?php echo $id_attr; ?>>
-            <div class="stat-label"><?php echo esc_html($args['label']); ?></div>
-            <div class="stat-value <?php echo esc_attr($value_classes); ?>">
-                <?php echo wp_kses_post($args['icon']); ?>
-                <?php echo wp_kses_post($args['value']); ?>
-            </div>
-            <?php if ($show_progress): ?>
-                <div class="stat-progress-track">
-                    <div class="stat-progress-fill"
-                         style="--fill-pct:<?php echo esc_attr(number_format($progress_pct, 1)); ?>%;--fill-color:<?php echo esc_attr($bar_color); ?>;"
-                         title="<?php echo esc_attr(number_format($progress_pct, 1) . '%'); ?>"></div>
-                </div>
+        <div class="<?php echo esc_attr($class); ?>"<?php echo $args['id'] ? ' id="' . esc_attr($args['id']) . '"' : ''; ?>>
+            <div class="mmi-stat-label"><?php echo esc_html($args['label']); ?></div>
+            <div class="mmi-stat-value"><?php echo wp_kses_post(trim($args['icon'] . ' ' . $args['value'])); ?></div>
+            <?php if ($args['progress'] !== null): ?>
+                <?php echo self::progress_bar($args['progress'], $args['variant'] ?: 'info'); ?>
             <?php endif; ?>
-            <?php if ($args['subtitle']): ?>
-                <div class="stat-sublabel"><?php echo wp_kses_post($args['subtitle']); ?></div>
+            <?php if ($args['subtitle'] !== ''): ?>
+                <div class="mmi-stat-meta"><?php echo wp_kses_post($args['subtitle']); ?></div>
             <?php endif; ?>
         </div>
-        <?php
-        return ob_get_clean();
-    }
-
-    /**
-     * Render a card component
-     * 
-     * @param array $args Arguments for the card
-     *        - 'title' (string) Card title
-     *        - 'icon' (string) Optional icon class
-     *        - 'content' (string) Card content HTML
-     *        - 'classes' (string) Additional classes
-     * @return string HTML for card
-     */
-    public static function render_card($args) {
-        $defaults = [
-            'title' => '',
-            'icon' => '',
-            'content' => '',
-            'classes' => ''
-        ];
-        
-        $args = wp_parse_args($args, $defaults);
-        $class = 'mmi-panel-card ' . $args['classes'];
-
-        ob_start();
-        ?>
-        <div class="<?php echo esc_attr($class); ?>">
-            <?php if ($args['title']): ?>
-                <h2>
-                    <?php if ($args['icon']): ?>
-                        <span class="dashicons <?php echo esc_attr($args['icon']); ?>"></span>
-                    <?php endif; ?>
-                    <?php echo esc_html($args['title']); ?>
-                </h2>
-            <?php endif; ?>
-            <div class="card-content">
-                <?php echo wp_kses_post($args['content']); ?>
-            </div>
-        </div>
-        <?php
-        return ob_get_clean();
-    }
-
-    /**
-     * Render a metric table row with status indicator
-     * 
-     * @param string $metric_name Metric name
-     * @param string $normal Normal threshold
-     * @param string $warning Warning threshold
-     * @param string $critical Critical threshold
-     * @param float $current_value Current value
-     * @param string $format Format string
-     * @return string HTML table row
-     */
-    public static function render_metric_row($metric_name, $normal, $warning, $critical, $current_value, $format = '%.2f') {
-        $status = self::get_threshold_status($current_value, floatval($warning), floatval($critical), $format);
-        
-        ob_start();
-        ?>
-        <tr>
-            <td><strong><?php echo esc_html($metric_name); ?></strong></td>
-            <td><?php echo esc_html($normal); ?></td>
-            <td><?php echo esc_html($warning); ?></td>
-            <td><?php echo esc_html($critical); ?></td>
-            <td><?php echo wp_kses_post($status); ?></td>
-        </tr>
         <?php
         return ob_get_clean();
     }
@@ -372,14 +288,16 @@ class RTSM_UI_Helpers {
      * @return string CSS class
      */
     public static function get_alert_severity_class($alert_line) {
+        // Shared .mmi-log-entry variants. `inline` keeps WP core from
+        // relocating a div.error (see render_stat_box()).
         if (stripos($alert_line, 'EMERGENCY') !== false || stripos($alert_line, 'CRITICAL') !== false) {
-            return 'alert-emergency';
+            return 'error inline';
         } elseif (stripos($alert_line, 'WARNING') !== false) {
-            return 'alert-warning';
+            return 'warning';
         } elseif (stripos($alert_line, 'RESOLVED') !== false) {
-            return 'alert-resolved';
+            return 'success';
         } elseif (stripos($alert_line, 'INFO') !== false) {
-            return 'alert-info';
+            return 'info';
         }
         return '';
     }

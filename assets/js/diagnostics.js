@@ -49,17 +49,6 @@
         userAgentChart:    '#userAgentChart',
     };
 
-    /* ── Concern-Level Colors ───────────────────────────────────────── */
-    const SEVERITY_COLORS = {
-        normal:   '#45852C',
-        medium:   '#00a0d2',
-        high:     '#f0b849',
-        critical: '#dc3232',
-        unknown:  '#999999',
-    };
-
-    /* ── Chart Segment Colors ───────────────────────────────────────── */
-
     /* ── Chart Segment Colors ───────────────────────────────────────── */
     const CHART_COLORS = {
         agentHuman:  '#45852C',
@@ -86,8 +75,8 @@
         const $button   = $(SELECTORS.refreshDiag);
         const $results  = $(SELECTORS.diagResults);
 
-        $button.prop('disabled', true);
-$results.html('<div class="notice notice-info inline"><p><span class="spinner is-active rtsm-spinner-leading"></span>Analyzing traffic patterns...</p></div>');
+        $button.prop('disabled', true).addClass('mmi-is-loading');
+        $results.html('<div class="notice notice-info inline"><p><span class="mmi-loading"></span> Analyzing traffic patterns…</p></div>');
 
         $.ajax({
             url: rtsmDiag.ajaxUrl,
@@ -108,7 +97,7 @@ $results.html('<div class="notice notice-info inline"><p><span class="spinner is
                 $results.html('<div class="notice notice-error inline"><p>Failed to connect to server. Please try again.</p></div>');
             },
             complete: function() {
-                $button.prop('disabled', false);
+                $button.prop('disabled', false).removeClass('mmi-is-loading');
             },
         });
     }
@@ -120,22 +109,21 @@ $results.html('<div class="notice notice-info inline"><p><span class="spinner is
         const $results = $(SELECTORS.diagResults);
         const $details = $(SELECTORS.diagDetails);
 
-        /* ── Threat type → WP notice class map ─────────────────────── */
-        const THREAT_NOTICE_CLASSES = {
-            attack:           'notice-error',
-            bot_attack:       'notice-error',
-            single_ip_attack: 'notice-error',
-            code_issue:       'notice-warning',
-            normal:           'notice-success',
+        /* ── Threat type → shared .mmi-info-card variant ─────────────── */
+        const THREAT_VARIANTS = {
+            attack:           'error inline',
+            bot_attack:       'error inline',
+            single_ip_attack: 'error inline',
+            code_issue:       'warning',
+            normal:           'success',
         };
-        const verdictClass = THREAT_NOTICE_CLASSES[data.threat_type] || 'notice-info';
+        const verdictClass = THREAT_VARIANTS[data.threat_type] || '';
 
         // Build verdict HTML
         $results.html(`
-            <div class="notice ${verdictClass} inline mmi-verdict-box">
-                <h3 class="mmi-verdict-heading">${esc(data.verdict)}</h3>
-                <div class="mmi-verdict-confidence"><strong>Confidence:</strong> ${esc(data.confidence)}%</div>
-                <div>${esc(data.recommendation)}</div>
+            <div class="mmi-info-card ${verdictClass}">
+                <h3>${esc(data.verdict)} <span class="mmi-badge">Confidence: ${esc(data.confidence)}%</span></h3>
+                <p>${esc(data.recommendation)}</p>
             </div>
         `);
 
@@ -143,30 +131,30 @@ $results.html('<div class="notice notice-info inline"><p><span class="spinner is
         if (data.url_analysis && data.url_analysis.length > 0) {
             /* ── Concern level → display config ─────────────────────── */
             const CONCERN_CONFIG = {
-                critical: { icon: '🚨', color: SEVERITY_COLORS.critical },
-                high:     { icon: '⚠️',  color: SEVERITY_COLORS.high     },
-                medium:   { icon: '⚡',  color: SEVERITY_COLORS.medium   },
+                critical: { icon: '🚨', badge: 'error'   },
+                high:     { icon: '⚠️',  badge: 'warning' },
+                medium:   { icon: '⚡',  badge: 'info'    },
             };
             const URL_TRUNCATE_LEN = 60;
 
-            let urlHtml = '<table class="wp-list-table widefat fixed striped">';
+            let urlHtml = '<div class="mmi-table-scroll-wrapper"><table class="mmi-uniform-table mmi-uniform-table--hoverable">';
             urlHtml += '<thead><tr><th>URL</th><th>Hits</th><th>%</th><th>Category</th><th>Status</th></tr></thead><tbody>';
 
             data.url_analysis.forEach(function(url) {
-                const concern       = CONCERN_CONFIG[url.concern_level] || { icon: '', color: SEVERITY_COLORS.normal };
+                const concern       = CONCERN_CONFIG[url.concern_level] || { icon: '', badge: 'success' };
                 const displayUrl    = url.url.substring(0, URL_TRUNCATE_LEN) + (url.url.length > URL_TRUNCATE_LEN ? '...' : '');
                 urlHtml += `<tr>
-                    <td><code class="mmi-url-code">${esc(displayUrl)}</code></td>
+                    <td class="rtsm-truncate" title="${esc(url.url)}"><code>${esc(displayUrl)}</code></td>
                     <td>${esc(url.hits)}</td>
-                    <td class="mmi-bold">${esc(url.percentage)}%</td>
+                    <td><strong>${esc(url.percentage)}%</strong></td>
                     <td>${esc(url.category)}</td>
-                    <td class="rtsm-concern-td" style="--concern-color:${concern.color}" title="${esc(url.description)}">${concern.icon} ${esc(String(url.concern_level).toUpperCase())}</td>
+                    <td title="${esc(url.description)}"><span class="mmi-badge ${concern.badge}">${concern.icon} ${esc(String(url.concern_level))}</span></td>
                 </tr>`;
             });
 
-            urlHtml += '</tbody></table>';
+            urlHtml += '</tbody></table></div>';
             $(SELECTORS.urlAnalysisTable).html(urlHtml);
-            $details.show();
+            $details.prop('hidden', false);
         }
 
         // Display user agent analysis
@@ -182,18 +170,18 @@ $results.html('<div class="notice notice-info inline"><p><span class="spinner is
 
             const agentLabels = [];
             const agentData   = [];
-            let agentHtml = '<canvas id="userAgentChart" class="mmi-agent-chart"></canvas>';
-            agentHtml += '<table class="wp-list-table widefat fixed striped mmi-agent-table"><thead><tr><th>Type</th><th>Requests</th></tr></thead><tbody>';
+            let agentHtml = '<div class="rtsm-chart"><canvas id="userAgentChart"></canvas></div>';
+            agentHtml += '<div class="mmi-table-scroll-wrapper"><table class="mmi-uniform-table mmi-uniform-table--hoverable"><thead><tr><th>Type</th><th>Requests</th></tr></thead><tbody>';
 
             for (const agent in data.user_agent_analysis) {
                 const count = data.user_agent_analysis[agent];
                 agentLabels.push(agent);
                 agentData.push(count);
                 const color = agentColors[agent] || CHART_COLORS.agentUnknown;
-                agentHtml += `<tr><td class="rtsm-agent-td" style="--agent-color:${color}">${esc(agent)}</td><td>${esc(count)}</td></tr>`;
+                agentHtml += `<tr><td><span class="rtsm-swatch" style="--swatch-color:${color}"></span> ${esc(agent)}</td><td>${esc(count)}</td></tr>`;
             }
 
-            agentHtml += '</tbody></table>';
+            agentHtml += '</tbody></table></div>';
             $(SELECTORS.userAgentAnalysis).html(agentHtml);
 
             // Create pie chart for user agents
@@ -220,7 +208,8 @@ $results.html('<div class="notice notice-info inline"><p><span class="spinner is
     
 
     $(document).ready(function() {
-        $(SELECTORS.refreshDiag).on('click', refreshDiagnostics);
+        // Delegated: the Diagnostics tab is usually injected by AJAX after load.
+        $(document).on('click', SELECTORS.refreshDiag, refreshDiagnostics);
     });
 
 })(jQuery);

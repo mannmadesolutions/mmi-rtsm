@@ -35,114 +35,89 @@ $load_causes = RTSM_Server_Monitor::get_load_cause_analysis();
 $show_causes = $load['1min'] >= 4.0 || $has_active_incident || ( $load_causes['wpcron']['overdue_count'] ?? 0 ) > 0;
 ?>
 
-<div class="mmi-dashboard-content">
-    <!-- Active Incident Card -->
+<div class="rtsm-dashboard">
     <?php if ($has_active_incident): ?>
         <?php include RTSM_PLUGIN_DIR . 'templates/partials/card-active-incident.php'; ?>
     <?php endif; ?>
 
-    <!-- Load Cause Analysis (shown when load is elevated) -->
     <?php if ($show_causes): ?>
         <?php
         $load1 = $load['1min'];
         include RTSM_PLUGIN_DIR . 'templates/partials/card-load-causes.php';
         ?>
     <?php else: ?>
-        <!-- Placeholder keeps JS refresh target in the DOM at all times -->
-        <div id="rtsm-load-causes-panel" class="mmi-hidden"
+        <!-- Placeholder keeps the JS refresh target in the DOM at all times -->
+        <div id="rtsm-load-causes-panel" class="mmi-process-section" hidden
              data-load="<?php echo esc_attr(number_format($load['1min'], 2)); ?>"></div>
     <?php endif; ?>
 
-    <!-- Current Server Status -->
-    <div class="mmi-panel-card">
-        <h2>
-            <span class="dashicons dashicons-dashboard"></span>
-            Current Server Status
-        </h2>
-        
-        <div id="rtsm-dashboard-stats" class="mmi-panel-stat-grid four-columns">
-            <?php
-            $load1 = $load['1min'];
-            $load5 = $load['5min'];
-            $load15 = $load['15min'];
-            include RTSM_PLUGIN_DIR . 'templates/partials/stat-load.php';
-            
-            include RTSM_PLUGIN_DIR . 'templates/partials/stat-cpu.php';
-            
-            $memory_percent = $memory['percent'];
-            $memory_used = $memory['used'];
-            $memory_total = $memory['total'];
-            include RTSM_PLUGIN_DIR . 'templates/partials/stat-memory.php';
-            
-            include RTSM_PLUGIN_DIR . 'templates/partials/stat-connections.php';
-            ?>
+    <div class="mmi-process-section">
+        <?php echo RTSM_UI_Helpers::section_header(
+            'dashboard',
+            'Current Server Status',
+            'Load, CPU, memory and connections, refreshed live.',
+            '',
+            '<span id="rtsm-last-update" class="mmi-text-muted">Last updated ' . esc_html(current_time('H:i:s')) . '</span>'
+        ); ?>
+        <div class="mmi-section-content">
+            <div id="rtsm-dashboard-stats" class="mmi-stats-grid">
+                <?php
+                $load1 = $load['1min'];
+                $load5 = $load['5min'];
+                $load15 = $load['15min'];
+                include RTSM_PLUGIN_DIR . 'templates/partials/stat-load.php';
+
+                include RTSM_PLUGIN_DIR . 'templates/partials/stat-cpu.php';
+
+                $memory_percent = $memory['percent'];
+                $memory_used = $memory['used'];
+                $memory_total = $memory['total'];
+                include RTSM_PLUGIN_DIR . 'templates/partials/stat-memory.php';
+
+                include RTSM_PLUGIN_DIR . 'templates/partials/stat-connections.php';
+                ?>
+            </div>
         </div>
     </div>
 
-    <!-- Platform Information -->
-    <div class="mmi-panel-card">
-        <h2>
-            <span class="dashicons dashicons-admin-site-alt3"></span>
-            Platform Information
-        </h2>
-        
-        <div class="rtsm-grid-3col">
-            <div>
-                <strong>Hosting Platform:</strong><br>
-                <span class="platform-highlight">
-                    <?php echo esc_html($platform_info['platform_name']); ?>
-                </span>
+    <div class="mmi-process-section">
+        <?php echo RTSM_UI_Helpers::section_header('admin-site-alt3', 'Platform Information', 'What this server is running and which system calls RTSM can use.'); ?>
+        <div class="mmi-section-content">
+            <div class="mmi-stats-grid rtsm-text-tiles">
+                <?php
+                echo RTSM_UI_Helpers::render_stat_box([
+                    'label' => 'Hosting Platform',
+                    'value' => esc_html($platform_info['platform_name']),
+                ]);
+                echo RTSM_UI_Helpers::render_stat_box([
+                    'label'    => 'Web Server',
+                    'value'    => esc_html(!empty($platform_info['server_software']) ? $platform_info['server_software'] : 'Not detected'),
+                    'subtitle' => !empty($platform_info['os_name']) ? esc_html(trim($platform_info['os_name'] . ' ' . ($platform_info['kernel'] ?? ''))) : '',
+                ]);
+                echo RTSM_UI_Helpers::render_stat_box([
+                    'label'    => 'PHP Version',
+                    'value'    => esc_html($platform_info['php_version']),
+                    'subtitle' => !empty($platform_info['php_sapi']) ? 'SAPI: ' . esc_html($platform_info['php_sapi']) : '',
+                ]);
+                if (!empty($platform_info['hostname'])) {
+                    echo RTSM_UI_Helpers::render_stat_box([
+                        'label'    => 'Server Hostname',
+                        'value'    => '<code>' . esc_html($platform_info['hostname']) . '</code>',
+                        'subtitle' => !empty($platform_info['uptime']) ? 'Up ' . esc_html($platform_info['uptime']) : '',
+                    ]);
+                }
+                ?>
             </div>
-            <div>
-                <strong>Web Server:</strong><br>
-                <?php echo esc_html(!empty($platform_info['server_software']) ? $platform_info['server_software'] : 'Not detected'); ?>
-                <?php if (!empty($platform_info['os_name'])): ?>
-                    <br><span class="mmi-rtsm-meta-sub"><?php echo esc_html($platform_info['os_name']); ?>&nbsp;<?php echo esc_html($platform_info['kernel'] ?? ''); ?></span>
-                <?php endif; ?>
-            </div>
-            <div>
-                <strong>PHP Version:</strong><br>
-                <?php echo esc_html($platform_info['php_version']); ?>
-                <?php if (!empty($platform_info['php_sapi'])): ?>
-                    <br><span class="mmi-rtsm-meta-sub">SAPI: <?php echo esc_html($platform_info['php_sapi']); ?></span>
-                <?php endif; ?>
-            </div>
-        </div>
 
-        <?php if (!empty($platform_info['uptime']) || !empty($platform_info['hostname'])): ?>
-        <div class="rtsm-grid-2col rtsm-mt-16">
-            <?php if (!empty($platform_info['hostname'])): ?>
-            <div>
-                <strong>Server Hostname:</strong><br>
-                <span class="mmi-rtsm-mono-value"><?php echo esc_html($platform_info['hostname']); ?></span>
-            </div>
-            <?php endif; ?>
-            <?php if (!empty($platform_info['uptime'])): ?>
-            <div>
-                <strong>Server Uptime:</strong><br>
-                <?php echo esc_html($platform_info['uptime']); ?>
-            </div>
-            <?php endif; ?>
-        </div>
-        <?php endif; ?>
-
-        <div class="capabilities-box">
-            <h3>Available Capabilities</h3>
-            <div class="capabilities-badges">
+            <h4>Available Capabilities</h4>
+            <div class="rtsm-badge-row">
                 <?php foreach ($platform_info['capabilities'] as $capability => $available): ?>
                     <span class="mmi-badge <?php echo $available ? 'success' : 'error'; ?>">
-                        <?php echo $available ? '✓' : '✗'; ?> 
+                        <?php echo $available ? '✓' : '✗'; ?>
                         <?php echo esc_html(ucwords(str_replace('_', ' ', $capability))); ?>
                     </span>
                 <?php endforeach; ?>
             </div>
         </div>
     </div>
-
-    <!-- Auto-refresh indicator -->
-    <div class="rtsm-info-box m-top-xlarge text-center">
-        Auto-refreshing every <strong>30 seconds</strong>
-        <span id="rtsm-last-update" class="m-left-medium">(Last updated: <?php echo current_time('H:i:s'); ?>)</span>
-    </div>
 </div>
-

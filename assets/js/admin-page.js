@@ -25,28 +25,23 @@
         statMemory:      '#rtsm-stat-memory',
         statConnections: '#rtsm-stat-connections',
         lastUpdate:      '#rtsm-last-update',
-        thresholdsTable: '.mmi-panel-card table tbody',
-        statValue:       '.stat-value',
-        statSublabel:    '.stat-sublabel',
+        statValue:       '.mmi-stat-value',
+        statSublabel:    '.mmi-stat-meta',
+        progress:        '.rtsm-progress',
+        progressFill:    '.rtsm-progress-fill',
         loadCausesPanel: '#rtsm-load-causes-panel',
+        causesContent:   '.mmi-section-content',
+        clearIncident:   '.rtsm-clear-incident',
+        incidentSection: '.rtsm-incident-section',
     };
 
-    /* ── Severity Color Palette ─────────────────────────────────────── */
-    const SEVERITY_COLORS = {
-        critical: '#dc3232',
-        warning:  '#f0b849',
-        normal:   '#46b450',
-        info:     '#2271b1',
+    /* ── Shared state words (.mmi-stat-box / .mmi-badge / .rtsm-progress) ── */
+    const VARIANTS = {
+        critical: 'error',
+        warning:  'warning',
+        normal:   'success',
     };
-
-    /* ── Severity CSS Classes (map to .rtsm-stat-card.severity-* rules) */
-    const SEVERITY_CLASSES = {
-        critical: 'severity-critical',
-        warning:  'severity-high',
-        normal:   'severity-medium',
-        info:     'severity-info',
-    };
-    const ALL_SEVERITY_CLASSES = Object.values(SEVERITY_CLASSES).join(' ');
+    const ALL_VARIANTS = 'success warning error info';
 
     /* ── Performance Thresholds ─────────────────────────────────────── */
     // Values sourced from PHP (RTSM_UI_Helpers::get_thresholds) when available.
@@ -97,10 +92,7 @@
         const load15 = parseFloat((data.load && data.load['15min']) || 0);
         const $loadBox = $(SELECTORS.statLoad);
         if ($loadBox.length) {
-            const loadClass = load1 >= THRESHOLDS.load.critical ? SEVERITY_CLASSES.critical
-                            : (load1 >= THRESHOLDS.load.warning  ? SEVERITY_CLASSES.warning
-                            : SEVERITY_CLASSES.normal);
-            $loadBox.removeClass(ALL_SEVERITY_CLASSES).addClass(loadClass);
+            setTileState($loadBox, variantFor(load1, THRESHOLDS.load), Math.min((load1 / 12) * 100, 100));
             $loadBox.find(SELECTORS.statValue).text(load1.toFixed(2));
             $loadBox.find(SELECTORS.statSublabel).text(`5 min: ${load5.toFixed(2)} | 15 min: ${load15.toFixed(2)}`);
         }
@@ -109,10 +101,7 @@
         const cpu = parseFloat(data.cpu_usage || 0);
         const $cpuBox = $(SELECTORS.statCpu);
         if ($cpuBox.length) {
-            const cpuClass = cpu >= THRESHOLDS.cpu.critical ? SEVERITY_CLASSES.critical
-                           : (cpu >= THRESHOLDS.cpu.warning  ? SEVERITY_CLASSES.warning
-                           : SEVERITY_CLASSES.info);
-            $cpuBox.removeClass(ALL_SEVERITY_CLASSES).addClass(cpuClass);
+            setTileState($cpuBox, variantFor(cpu, THRESHOLDS.cpu), Math.min(cpu, 100));
             $cpuBox.find(SELECTORS.statValue).text(`${cpu.toFixed(2)}%`);
         }
 
@@ -122,6 +111,7 @@
         const memTotal = (data.memory && data.memory.total) || '0';
         const $memBox = $(SELECTORS.statMemory);
         if ($memBox.length) {
+            setTileState($memBox, variantFor(memPercent, THRESHOLDS.memory), memPercent);
             $memBox.find(SELECTORS.statValue).text(`${memPercent.toFixed(2)}%`);
             $memBox.find(SELECTORS.statSublabel).text(`${memUsed} MB / ${memTotal} MB`);
         }
@@ -140,10 +130,7 @@
         const hh = String(now.getHours()).padStart(2, '0');
         const mm = String(now.getMinutes()).padStart(2, '0');
         const ss = String(now.getSeconds()).padStart(2, '0');
-        $(SELECTORS.lastUpdate).text(`(Last updated: ${hh}:${mm}:${ss})`);
-
-        // Update Performance Thresholds table if it exists
-        updateThresholdsTable(data);
+        $(SELECTORS.lastUpdate).text(`Last updated ${hh}:${mm}:${ss}`);
 
         // Refresh the load-cause analysis panel
         if (data.load_causes !== undefined) {
@@ -152,60 +139,31 @@
     }
     
     /**
-     * Build a severity-coloured status span for the thresholds table.
+     * Map a metric onto a shared state word using its {critical, warning} pair.
      *
-     * @param {string} icon    Emoji icon
-     * @param {string} label   Text label (e.g. 'Critical')
-     * @param {string} color   Hex color from SEVERITY_COLORS
-     * @param {string} value   Formatted metric value
-     * @returns {string} HTML string
+     * @param {number} value
+     * @param {Object} limits  { critical, warning }
+     * @returns {string} success|warning|error
      */
-    function buildStatusSpan(icon, label, color, value) {
-        return `<span class="rtsm-status-span" style="--status-color:${color};">${icon} ${label} (${value})</span>`;
+    function variantFor(value, limits) {
+        if (value >= limits.critical) return VARIANTS.critical;
+        if (value >= limits.warning)  return VARIANTS.warning;
+        return VARIANTS.normal;
     }
 
     /**
-     * Update Performance Thresholds current status
+     * Recolor a stat tile and its progress bar.
+     *
+     * @param {jQuery} $box
+     * @param {string} variant
+     * @param {number} pct      0-100 progress fill
      */
-    function updateThresholdsTable(data) {
-        const $thresholdsTable = $(SELECTORS.thresholdsTable);
-        if (!$thresholdsTable.length) return;
-
-        // Update Load Average status
-        const load1 = data.load['1min'] || 0;
-        let loadStatus;
-        if (load1 >= THRESHOLDS.load.critical) {
-            loadStatus = buildStatusSpan('🔴', 'Critical', SEVERITY_COLORS.critical, load1.toFixed(2));
-        } else if (load1 >= THRESHOLDS.load.warning) {
-            loadStatus = buildStatusSpan('🟡', 'Warning', SEVERITY_COLORS.warning, load1.toFixed(2));
-        } else {
-            loadStatus = buildStatusSpan('✅', 'Normal', SEVERITY_COLORS.normal, load1.toFixed(2));
-        }
-        $thresholdsTable.find('tr').eq(0).find('td').last().html(loadStatus);
-
-        // Update CPU status
-        const cpu = data.cpu_usage || 0;
-        let cpuStatus;
-        if (cpu >= THRESHOLDS.cpu.critical) {
-            cpuStatus = buildStatusSpan('🔴', 'Critical', SEVERITY_COLORS.critical, `${cpu.toFixed(2)}%`);
-        } else if (cpu >= THRESHOLDS.cpu.warning) {
-            cpuStatus = buildStatusSpan('🟡', 'Warning', SEVERITY_COLORS.warning, `${cpu.toFixed(2)}%`);
-        } else {
-            cpuStatus = buildStatusSpan('✅', 'Normal', SEVERITY_COLORS.normal, `${cpu.toFixed(2)}%`);
-        }
-        $thresholdsTable.find('tr').eq(1).find('td').last().html(cpuStatus);
-
-        // Update Memory status
-        const mem = data.memory.percent || 0;
-        let memStatus;
-        if (mem >= THRESHOLDS.memory.critical) {
-            memStatus = buildStatusSpan('🔴', 'Critical', SEVERITY_COLORS.critical, `${mem.toFixed(2)}%`);
-        } else if (mem >= THRESHOLDS.memory.warning) {
-            memStatus = buildStatusSpan('🟡', 'Warning', SEVERITY_COLORS.warning, `${mem.toFixed(2)}%`);
-        } else {
-            memStatus = buildStatusSpan('✅', 'Normal', SEVERITY_COLORS.normal, `${mem.toFixed(2)}%`);
-        }
-        $thresholdsTable.find('tr').eq(2).find('td').last().html(memStatus);
+    function setTileState($box, variant, pct) {
+        $box.removeClass(ALL_VARIANTS).addClass(variant);
+        const $bar = $box.find(SELECTORS.progress);
+        $bar.removeClass('is-success is-warning is-error is-info').addClass(`is-${variant}`);
+        const fill = $bar.find(SELECTORS.progressFill)[0];
+        if (fill) fill.style.setProperty('--fill-pct', `${pct.toFixed(1)}%`);
     }
 
     /* ── Load Cause Analysis Panel ──────────────────────────────── */
@@ -220,24 +178,55 @@
         const $panel = $(SELECTORS.loadCausesPanel);
         if (!$panel.length) return;
 
+        // Same rule as dashboard.php's $show_causes: elevated load, an
+        // active incident, or overdue WP-Cron jobs (the cron health email
+        // links here, so it must stay visible at normal load too).
         const ELEVATED_THRESHOLD = 4.0;
-        const isElevated = load1 >= ELEVATED_THRESHOLD;
+        const overdue = (causes && causes.wpcron && causes.wpcron.overdue_count) || 0;
+        const show = load1 >= ELEVATED_THRESHOLD || overdue > 0 || $(SELECTORS.incidentSection).length > 0;
 
-        if (!isElevated) {
-            $panel.hide();
-            return;
-        }
+        $panel.prop('hidden', !show);
+        if (!show) return;
 
-        $panel.show();
-        const html = buildCausesHTML(causes);
-        // Replace the inner content but preserve the outer card wrapper
-        $panel.find('ul.rtsm-cause-list, p.rtsm-cause-none').remove();
-        $panel.find('h2').after(html);
-        $panel.attr('data-load', load1.toFixed(2));
+        // Rebuild the whole section: the server may have rendered only the
+        // empty placeholder.
+        $panel.html(buildPanelHTML(load1, causes)).attr('data-load', load1.toFixed(2));
     }
 
     /**
-     * Build the inner HTML for the causes panel from the cause object.
+     * Section header + severity bar + cause cards — mirrors
+     * templates/partials/card-load-causes.php.
+     *
+     * @param {number} load1
+     * @param {Object} causes
+     * @returns {string} HTML string
+     */
+    function buildPanelHTML(load1, causes) {
+        const logsUrl = rtsmAdmin.logsUrl || '';
+        let label = 'Normal', variant = 'success';
+        if (load1 >= 8.0)      { label = 'Critical'; variant = 'error'; }
+        else if (load1 >= 6.0) { label = 'High';     variant = 'warning'; }
+        else if (load1 >= 4.0) { label = 'Elevated'; variant = 'warning'; }
+        const pct = Math.min((load1 / 12) * 100, 100).toFixed(1);
+        const logsBtn = logsUrl
+            ? `<div class="rtsm-section-actions"><a href="${escHtml(logsUrl)}" class="button button-secondary"><span class="dashicons dashicons-media-text"></span> View Activity Logs</a></div>`
+            : '';
+
+        return `<div class="mmi-section-header"><div>` +
+                `<h3 class="mmi-process-section-header"><span class="dashicons dashicons-performance"></span> Load Cause Analysis</h3>` +
+                `<p class="mmi-process-section-description">Why load is elevated and what to do about it. Refreshes live.</p>` +
+            `</div>${logsBtn}</div>` +
+            `<div class="mmi-section-content">` +
+                `<div class="rtsm-severity">` +
+                    `<div class="rtsm-severity-label mmi-text-${variant}">${label} — Load ${load1.toFixed(2)}</div>` +
+                    `<div class="rtsm-progress is-${variant}"><span class="rtsm-progress-fill" style="--fill-pct:${pct}%;"></span></div>` +
+                `</div>` +
+                buildCausesHTML(causes) +
+            `</div>`;
+    }
+
+    /**
+     * Build the cause cards from the cause object.
      *
      * @param {Object} causes
      * @returns {string} HTML string
@@ -264,7 +253,7 @@
             const throttled  = throttler.throttled_count || 0;
             const stuckCount = throttler.stuck_count || 0;
             const badge      = `${running} running${throttled > 0 ? `, ${throttled} throttled` : ''}`;
-            const itemClass  = stuckCount > 0 ? 'rtsm-cause-critical' : 'rtsm-cause-warning';
+            const itemClass  = stuckCount > 0 ? 'error inline' : 'warning';
             const stuckBadge = stuckCount > 0
                 ? ` <span class="mmi-badge error">⚠ ${stuckCount} stuck</span>`
                 : '';
@@ -273,30 +262,30 @@
                 const statusBadge = `<span class="mmi-badge ${p.status === 'throttled' ? 'warning' : 'info'}">${escHtml(p.status)}</span>`;
                 let meta = '';
                 if (p.elapsed_sec != null) {
-                    meta += ` <span class="rtsm-process-meta">for ${formatDuration(p.elapsed_sec)}</span>`;
+                    meta += ` <span class="mmi-text-muted">for ${formatDuration(p.elapsed_sec)}</span>`;
                 }
                 if (p.is_stuck) {
                     const timeoutMin = Math.floor((p.timeout_sec || 600) / 60);
                     meta += ` <span class="mmi-badge error">⚠ Stuck</span>`
-                          + ` <span class="rtsm-process-meta">(exceeded ${timeoutMin}m timeout)</span>`;
+                          + ` <span class="mmi-text-muted">(exceeded ${timeoutMin}m timeout)</span>`;
                 }
                 if (p.pause_count > 0) {
-                    meta += ` <span class="rtsm-process-meta">(paused ${p.pause_count}×)</span>`;
+                    meta += ` <span class="mmi-text-muted">(paused ${p.pause_count}×)</span>`;
                 }
                 return `<li><code>${escHtml(p.name)}</code> ${statusBadge}${meta}</li>`;
             }).join('');
 
-            const detail  = procList ? `<ul class="rtsm-cause-sublist">${procList}</ul>` : '';
+            const detail  = procList ? `<ul>${procList}</ul>` : '';
             const actions = [
-                throttlerUrl ? `<a href="${escHtml(throttlerUrl)}" class="button button-secondary rtsm-action-btn"><span class="dashicons dashicons-controls-pause"></span> View Throttler</a>` : '',
-                processesUrl ? `<a href="${escHtml(processesUrl)}" class="button button-secondary rtsm-action-btn"><span class="dashicons dashicons-list-view"></span> View Processes</a>` : '',
+                throttlerUrl ? `<a href="${escHtml(throttlerUrl)}" class="button button-secondary"><span class="dashicons dashicons-controls-pause"></span> View Throttler</a>` : '',
+                processesUrl ? `<a href="${escHtml(processesUrl)}" class="button button-secondary"><span class="dashicons dashicons-list-view"></span> View Processes</a>` : '',
             ].filter(Boolean).join('');
             items.push(
-                `<li class="rtsm-cause-item ${itemClass}">` +
-                    `<div class="rtsm-cause-header"><span class="dashicons dashicons-controls-pause"></span> <strong>Background Processes</strong> <span class="mmi-badge warning">${escHtml(badge)}</span>${stuckBadge}</div>` +
+                `<div class="mmi-info-card ${itemClass}">` +
+                    `<h3><span class="dashicons dashicons-controls-pause"></span> <strong>Background Processes</strong> <span class="mmi-badge warning">${escHtml(badge)}</span>${stuckBadge}</h3>` +
                     (detail ? `<div class="rtsm-cause-detail">${detail}</div>` : '') +
-                    (actions ? `<div class="rtsm-cause-actions">${actions}</div>` : '') +
-                `</li>`
+                    (actions ? `<div class="mmi-toolbar">${actions}</div>` : '') +
+                `</div>`
             );
         }
 
@@ -304,7 +293,7 @@
         if ((wpcron.overdue_count || 0) > 0) {
             const count      = wpcron.overdue_count;
             const isCritical = count >= 100;
-            const itemClass  = isCritical ? 'rtsm-cause-critical' : 'rtsm-cause-warning';
+            const itemClass  = isCritical ? 'error inline' : 'warning';
             const badgeClass = isCritical ? 'error'      : 'warning';
 
             let detail = '';
@@ -320,23 +309,23 @@
             const overduedHooks = wpcron.overdue_hooks || [];
             if (overduedHooks.length > 0) {
                 const hookRows = overduedHooks.map(
-                    h => `<li><code>${escHtml(h.hook)}</code> <span class="rtsm-process-meta">&mdash; ${formatDuration(h.overdue_sec)} overdue</span></li>`
+                    h => `<li><code>${escHtml(h.hook)}</code> <span class="mmi-text-muted">&mdash; ${formatDuration(h.overdue_sec)} overdue</span></li>`
                 ).join('');
-                detail += `<ul class="rtsm-cause-sublist">${hookRows}</ul>`;
+                detail += `<ul>${hookRows}</ul>`;
             }
 
             const cronBtn  = nonce
-                ? `<button type="button" class="button button-secondary rtsm-action-btn rtsm-trigger-cron" data-nonce="${escHtml(nonce)}"><span class="dashicons dashicons-update"></span> Trigger Cron Now</button>`
+                ? `<button type="button" class="button button-secondary rtsm-trigger-cron" data-nonce="${escHtml(nonce)}"><span class="dashicons dashicons-update"></span> Trigger Cron Now</button>`
                 : '';
-            const wpTools  = `<a href="${escHtml(admin_url_tools || (rtsmAdmin.ajaxUrl || '').replace('admin-ajax.php', 'tools.php'))}" class="button button-secondary rtsm-action-btn"><span class="dashicons dashicons-admin-tools"></span> WP Tools</a>`;
-            const logsBtn  = logsUrl ? `<a href="${escHtml(logsUrl)}" class="button button-secondary rtsm-action-btn"><span class="dashicons dashicons-text-page"></span> View Logs</a>` : '';
+            const wpTools  = `<a href="${escHtml(admin_url_tools || (rtsmAdmin.ajaxUrl || '').replace('admin-ajax.php', 'tools.php'))}" class="button button-secondary"><span class="dashicons dashicons-admin-tools"></span> WP Tools</a>`;
+            const logsBtn  = logsUrl ? `<a href="${escHtml(logsUrl)}" class="button button-secondary"><span class="dashicons dashicons-text-page"></span> View Logs</a>` : '';
 
             items.push(
-                `<li class="rtsm-cause-item ${itemClass}">` +
-                    `<div class="rtsm-cause-header"><span class="dashicons dashicons-clock"></span> <strong>Overdue WP-Cron Jobs</strong> <span class="mmi-badge ${badgeClass}">${count.toLocaleString()} overdue</span></div>` +
+                `<div class="mmi-info-card ${itemClass}">` +
+                    `<h3><span class="dashicons dashicons-clock"></span> <strong>Overdue WP-Cron Jobs</strong> <span class="mmi-badge ${badgeClass}">${count.toLocaleString()} overdue</span></h3>` +
                     `<div class="rtsm-cause-detail">${detail}</div>` +
-                    `<div class="rtsm-cause-actions">${cronBtn}${wpTools}${logsBtn}</div>` +
-                `</li>`
+                    `<div class="mmi-toolbar">${cronBtn}${wpTools}${logsBtn}</div>` +
+                `</div>`
             );
         }
 
@@ -344,18 +333,54 @@
         if ((attribution.web_cpu || 0) >= 50) {
             const webCpu     = parseFloat(attribution.web_cpu).toFixed(1);
             const isVeryHigh = parseFloat(attribution.web_cpu) >= 150;
-            const itemClass  = isVeryHigh ? 'rtsm-cause-critical' : 'rtsm-cause-warning';
+            const itemClass  = isVeryHigh ? 'error inline' : 'warning';
             const badgeClass = isVeryHigh ? 'error'      : 'warning';
             const detail     = 'Open Traffic Analysis to see the top URLs and IPs. If it looks like an attack, block it in Cloudflare (WAF rule or Under Attack Mode in the Cloudflare dashboard).';
             const trafficBtn = trafficUrl
-                ? `<a href="${escHtml(trafficUrl)}" class="button button-secondary rtsm-action-btn"><span class="dashicons dashicons-chart-line"></span> Traffic Analysis</a>`
+                ? `<a href="${escHtml(trafficUrl)}" class="button button-secondary"><span class="dashicons dashicons-chart-line"></span> Traffic Analysis</a>`
                 : '';
             items.push(
-                `<li class="rtsm-cause-item ${itemClass}">` +
-                    `<div class="rtsm-cause-header"><span class="dashicons dashicons-chart-area"></span> <strong>High Web Traffic</strong> <span class="mmi-badge ${badgeClass}">${webCpu}% web CPU</span></div>` +
+                `<div class="mmi-info-card ${itemClass}">` +
+                    `<h3><span class="dashicons dashicons-chart-area"></span> <strong>High Web Traffic</strong> <span class="mmi-badge ${badgeClass}">${webCpu}% web CPU</span></h3>` +
                     `<div class="rtsm-cause-detail">${detail}</div>` +
-                    (trafficBtn ? `<div class="rtsm-cause-actions">${trafficBtn}</div>` : '') +
-                `</li>`
+                    (trafficBtn ? `<div class="mmi-toolbar">${trafficBtn}</div>` : '') +
+                `</div>`
+            );
+        }
+
+        /* ── Scheduled Backup ── */
+        if ((attribution.backup_cpu || 0) >= 10) {
+            const backupCpu = parseFloat(attribution.backup_cpu);
+            const procs = (attribution.top_backup_processes || []).map(p => escHtml(p)).join(', ');
+            const note  = backupCpu >= 100 ? '<br><strong>Note:</strong> CPU usage exceeds one full core — consider rescheduling the backup to an off-peak window in RunCloud.' : '';
+            items.push(
+                `<div class="mmi-info-card">` +
+                    `<h3><span class="dashicons dashicons-backup"></span> <strong>Scheduled Backup Running</strong> <span class="mmi-badge info">${backupCpu.toFixed(1)}% CPU</span></h3>` +
+                    `<div class="rtsm-cause-detail">${procs ? `<strong>Processes:</strong> <code>${procs}</code>. ` : ''}Backup processes are CPU- and I/O-intensive but temporary. Server load will drop when the backup completes.${note}</div>` +
+                `</div>`
+            );
+        }
+
+        /* ── Memory Pressure ── */
+        const mem = causes.memory_pressure || {};
+        if (mem.high) {
+            const memPct    = parseFloat(mem.percent || 0);
+            const swapUsed  = parseInt(mem.swap_used_mb || 0, 10);
+            const swapTotal = parseInt(mem.swap_total_mb || 0, 10);
+            const critical  = memPct >= 95;
+            let detail;
+            if (swapTotal > 0 && swapUsed > 0) {
+                detail = `<strong>Swap active:</strong> ${swapUsed.toLocaleString()} MB in use of ${swapTotal.toLocaleString()} MB. Swapping inflates load averages because CPU waits for disk I/O.`;
+            } else if (critical) {
+                detail = 'Memory is near capacity. PHP-FPM workers may be killed by the OOM killer, causing worker churn and elevated load.';
+            } else {
+                detail = 'High memory usage can cause PHP-FPM workers to enter swap, degrading response times.';
+            }
+            items.push(
+                `<div class="mmi-info-card ${critical ? 'error inline' : 'warning'}">` +
+                    `<h3><span class="dashicons dashicons-dashboard"></span> <strong>Memory Pressure</strong> <span class="mmi-badge ${critical ? 'error' : 'warning'}">${memPct.toFixed(1)}% used</span></h3>` +
+                    `<div class="rtsm-cause-detail">${detail} Consider reducing the number of PHP-FPM workers, lowering <code>pm.max_children</code>, or upgrading your server RAM.</div>` +
+                `</div>`
             );
         }
 
@@ -363,17 +388,17 @@
         if ((attribution.dev_cpu || 0) >= 5) {
             const procs = (attribution.top_dev_processes || []).slice(0, 3).map(p => `<code>${escHtml(p)}</code>`).join(', ');
             items.push(
-                `<li class="rtsm-cause-item rtsm-cause-info">` +
-                    `<div class="rtsm-cause-header"><span class="dashicons dashicons-editor-code"></span> <strong>Developer Tools</strong> <span class="mmi-badge info">${parseFloat(attribution.dev_cpu).toFixed(1)}% CPU</span></div>` +
+                `<div class="mmi-info-card">` +
+                    `<h3><span class="dashicons dashicons-editor-code"></span> <strong>Developer Tools</strong> <span class="mmi-badge info">${parseFloat(attribution.dev_cpu).toFixed(1)}% CPU</span></h3>` +
                     `<div class="rtsm-cause-detail">${procs ? `Processes: ${procs}. ` : ''}Maintenance mode is suppressed.</div>` +
-                `</li>`
+                `</div>`
             );
         }
 
         if (!items.length) {
-            return '<p class="rtsm-cause-none"><span class="dashicons dashicons-yes-alt rtsm-icon-success"></span> No specific cause identified — load may be transient.</p>';
+            return '<p class="rtsm-cause-none"><span class="dashicons dashicons-yes-alt mmi-text-success"></span> No specific cause identified — load may be transient or within normal variance.</p>';
         }
-        return `<ul class="rtsm-cause-list">${items.join('')}</ul>`;
+        return `<div class="rtsm-cause-list">${items.join('')}</div>`;
     }
 
     /**
@@ -402,11 +427,10 @@
         $.post(rtsmAdmin.ajaxUrl, { action: 'rtsm_spawn_cron', nonce })
             .done(function(res) {
                 if (res.success) {
-                    $btn.html('<span class="dashicons dashicons-yes-alt"></span> Cron triggered!').addClass('rtsm-btn-success');
+                    $btn.html('<span class="dashicons dashicons-yes-alt"></span> Cron triggered!');
                     setTimeout(function() {
                         $btn.prop('disabled', false)
-                            .html('<span class="dashicons dashicons-update"></span> Trigger Cron Now')
-                            .removeClass('rtsm-btn-success');
+                            .html('<span class="dashicons dashicons-update"></span> Trigger Cron Now');
                     }, 3000);
                 } else {
                     $btn.prop('disabled', false).html('<span class="dashicons dashicons-update"></span> Trigger Cron Now');
@@ -429,14 +453,32 @@
 
     // Initialize on document ready
     $(document).ready(function() {
-        // Only run on RTSM admin pages
-        if ($(SELECTORS.dashboardStats).length) {
-            // Start auto-refresh
-            setInterval(updateDashboardStats, refreshInterval);
+        // Poll on an interval but only fetch while the Dashboard tab is in
+        // the DOM — it may arrive later via rtsm_load_tab, so don't gate the
+        // timer on its presence at page load.
+        const tick = function() {
+            if ($(SELECTORS.dashboardStats).length) updateDashboardStats();
+        };
+        setInterval(tick, refreshInterval);
+        setTimeout(tick, 2000);
+        $(document).on('rtsm_tab_loaded', function(event, tabName) {
+            if (tabName === 'dashboard') tick();
+        });
 
-            // Initial update after 2 seconds (let page load first)
-            setTimeout(updateDashboardStats, 2000);
-        }
+        // "Clear incident now" (was an inline <script> in card-active-incident.php)
+        $(document).on('click', SELECTORS.clearIncident, function() {
+            const $btn = $(this);
+            $btn.prop('disabled', true).addClass('mmi-is-loading').html('<span class="mmi-loading"></span> Clearing…');
+            $.post(ajaxUrl, { action: 'rtsm_resolve_incident', nonce })
+                .done(function() {
+                    $btn.closest(SELECTORS.incidentSection).remove();
+                    $('#mmi-incident-notice').remove();
+                })
+                .fail(function() {
+                    $btn.prop('disabled', false).removeClass('mmi-is-loading')
+                        .html('<span class="dashicons dashicons-dismiss"></span> Clear incident now');
+                });
+        });
 
         // Delegated handler for "Trigger Cron Now" buttons
         $(document).on('click', '.rtsm-trigger-cron', function() {

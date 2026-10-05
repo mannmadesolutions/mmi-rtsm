@@ -23,9 +23,6 @@ echo RTSM_UI_Helpers::render_stat_box([
     'label'         => 'Memory',
     'value'         => number_format($memory_percent, 2) . '%',
     'subtitle'      => sprintf('%s MB / %s MB', number_format($memory_used, 0), number_format($memory_total, 0)),
-    'color'         => $status['color'],
-    'icon'          => $status['icon'] . ' ',
-    'classes'       => $status['class'],
+    'variant'       => $status['variant'],
     'progress'      => $memory_percent,
-    'progress_color'=> $status['color'],
 ]);

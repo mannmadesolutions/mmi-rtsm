@@ -24,9 +24,6 @@ echo RTSM_UI_Helpers::render_stat_box([
     'label'         => 'CPU Usage',
     'value'         => number_format($cpu, 2) . '%',
     'subtitle'      => $subtitle,
-    'color'         => $status['color'],
-    'icon'          => $status['icon'] . ' ',
-    'classes'       => $status['class'],
+    'variant'       => $status['variant'],
     'progress'      => min($cpu, 100),
-    'progress_color'=> $status['color'],
 ]);

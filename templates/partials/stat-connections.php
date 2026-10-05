@@ -19,6 +19,4 @@ echo RTSM_UI_Helpers::render_stat_box([
     'label'    => 'Connections',
     'value'    => number_format($count),
     'subtitle' => 'Active connections',
-    'color'    => '#45852C',
-    'classes'  => 'rtsm-stat-normal',
 ]);

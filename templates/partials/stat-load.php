@@ -25,9 +25,6 @@ echo RTSM_UI_Helpers::render_stat_box([
     'label'         => 'Load Average (1 min)',
     'value'         => number_format($load1, 2),
     'subtitle'      => sprintf('5 min: %s | 15 min: %s', number_format($load5, 2), number_format($load15, 2)),
-    'color'         => $status['color'],
-    'icon'          => $status['icon'] . ' ',
-    'classes'       => $status['class'],
+    'variant'       => $status['variant'],
     'progress'      => $load_pct,
-    'progress_color'=> $status['color'],
 ]);

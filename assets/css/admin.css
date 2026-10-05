@@ -1,0 +1,176 @@
+/**
+ * Real-Time Server Monitor — admin page (RTSM-local rules only).
+ *
+ * Everything else on this page is the suite's shared design system in
+ * mmi-suite-common.css: page shell (.mmi-header), page sections
+ * (.mmi-process-section), stat tiles (.mmi-stat-box / .mmi-stats-grid),
+ * info cards, widgets, grids, badges, uniform tables, logs, toolbars and
+ * label grids. Before adding a rule here, grep that file for an existing
+ * component (AGENTS.md → CSS Ownership). This file replaced eleven
+ * plugin-local stylesheets (v2.10.0); see mmi-admin/docs/style-system.md.
+ *
+ * Kept local because the shared library has no equivalent:
+ *   - .rtsm-progress   thin meter (stat tiles, load saturation, severity)
+ *   - tab-pane visibility for the AJAX-loaded tabs
+ *   - a handful of layout glue rules scoped to .mmi-rtsm-page
+ */
+
+/* ── Tab panes (admin-tabs-navigation.js shows/hides them) ──────────────── */
+.mmi-rtsm-page .mmi-tab-pane:not(.active) {
+    display: none;
+}
+.mmi-rtsm-page .nav-tab-wrapper {
+    margin-bottom: 20px;
+}
+
+/* ── Section header: right-hand actions (buttons, select, status text) ─── */
+.rtsm-section-actions:not([hidden]) {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+/* ── Progress meter ─────────────────────────────────────────────────────
+ * Width comes from --fill-pct (data injected by PHP/JS); color from the
+ * shared state word: is-success | is-warning | is-error | is-info. */
+.rtsm-progress {
+    height: 6px;
+    margin: 10px 0 2px;
+    border-radius: 3px;
+    background: var(--mmi-gray-200, #eeeeee);
+    overflow: hidden;
+}
+.rtsm-progress-fill {
+    display: block;
+    height: 100%;
+    width: var(--fill-pct, 0%);
+    background: var(--rtsm-progress-color, var(--mmi-info));
+    transition: width 0.4s ease;
+}
+.rtsm-progress.is-success { --rtsm-progress-color: var(--mmi-success); }
+.rtsm-progress.is-warning { --rtsm-progress-color: var(--mmi-warning); }
+.rtsm-progress.is-error   { --rtsm-progress-color: var(--mmi-error); }
+.rtsm-progress.is-info    { --rtsm-progress-color: var(--mmi-info); }
+
+/* Labelled meter block (load saturation, cause-analysis severity). */
+.rtsm-severity {
+    margin: 16px 0;
+}
+.rtsm-severity-label {
+    font-size: 13px;
+    font-weight: 600;
+}
+
+/* ── Stat tiles that hold text, not a number (token override) ────────── */
+.rtsm-text-tiles {
+    --mmi-stat-value-font-size: 16px;
+}
+.rtsm-text-tiles .mmi-stat-value {
+    overflow-wrap: anywhere;
+}
+
+/* ── Layout glue ───────────────────────────────────────────────────────── */
+.mmi-rtsm-page .mmi-section-content h4 {
+    margin: 20px 0 8px;
+}
+.mmi-rtsm-page .mmi-section-content h4:first-child {
+    margin-top: 0;
+}
+/* Cards placed on a shared grid take the grid gap, not their own margin. */
+.mmi-rtsm-page :is(.mmi-grid-2, .mmi-grid-3, .mmi-grid-4) > .mmi-info-card {
+    margin: 0;
+}
+.mmi-rtsm-page .mmi-info-card .mmi-toolbar {
+    margin: 12px 0 0;
+}
+.mmi-rtsm-page .mmi-widget ul {
+    margin: 0 0 12px 18px;
+    list-style: disc;
+}
+.mmi-rtsm-page .mmi-widget h3 .mmi-badge {
+    margin-left: 6px;
+    vertical-align: middle;
+}
+
+/* Capability badges row. */
+.rtsm-badge-row:not([hidden]) {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+/* Shared components set `display` (.mmi-badge, .mmi-grid-2, …), which
+   beats the UA [hidden] rule. RTSM toggles badges, grids and sections with
+   `hidden`, so make it win on this page (AGENTS.md → [hidden] rule). */
+.mmi-rtsm-page [hidden] {
+    display: none !important;
+}
+
+/* Key/value table (Settings → System Information): body <th> labels. */
+.mmi-rtsm-page .mmi-uniform-table tbody th {
+    width: 30%;
+    padding: var(--mmi-table-cell-padding, 6px 12px);
+    text-align: left;
+    border-right: 1px solid var(--mmi-table-border-color);
+}
+
+/* Auto-remediation threshold the server is in right now. */
+.rtsm-threshold.is-active {
+    box-shadow: 0 0 0 2px var(--mmi-primary);
+}
+.rtsm-threshold .rtsm-threshold-active {
+    margin-top: 10px;
+}
+.mmi-rtsm-page .mmi-grid-4 + .mmi-hint-text {
+    margin-top: 16px;
+}
+
+/* A hint that sits inline after a heading (.mmi-hint-text is a block). */
+.rtsm-inline-hint {
+    display: inline;
+    margin: 0 0 0 6px;
+}
+
+/* Table cells. */
+.rtsm-truncate {
+    max-width: 360px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.rtsm-nowrap {
+    white-space: nowrap;
+}
+.rtsm-break-all {
+    word-break: break-all;
+}
+
+/* Process table: fixed layout so Command truncates instead of widening. */
+.rtsm-process-table {
+    table-layout: fixed;
+}
+.rtsm-process-table th[data-resize-col="pid"]     { width: 80px; }
+.rtsm-process-table th[data-resize-col="user"]    { width: 110px; }
+.rtsm-process-table th[data-resize-col="cpu"],
+.rtsm-process-table th[data-resize-col="mem"]     { width: 80px; }
+.rtsm-process-table th[data-resize-col="elapsed"] { width: 100px; }
+.rtsm-process-table th[data-resize-col="kill"]    { width: 80px; }
+.rtsm-process-table .rtsm-truncate {
+    max-width: none;
+}
+
+/* Diagnostics: traffic-source chart + legend swatches (--swatch-color is data). */
+.rtsm-chart {
+    position: relative;
+    height: 220px;
+    margin-bottom: 12px;
+}
+.rtsm-swatch {
+    display: inline-block;
+    width: 10px;
+    height: 10px;
+    margin-right: 6px;
+    border-radius: 2px;
+    background: var(--swatch-color, var(--mmi-gray-300));
+}

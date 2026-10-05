@@ -21,6 +21,7 @@
         refreshProcesses:   '#refresh-processes',
         processContainer:   '#processes-container',
         processItem:        '[data-process-type]',
+        logButton:          '[data-rtsm-log][data-rtsm-log-action]',
     };
 
     /* ── CSS Classes ────────────────────────────────────────────────── */
@@ -29,23 +30,23 @@
         noticeInline: 'inline',
         noticeInfo:   'notice-info',
         noticePrefix: 'notice-',
-        loadingText:  'mmi-rtsm-loading-text',
-        noticeBody:   'mmi-rtsm-notice-inline',
-        protectedIcon: 'mmi-rtsm-icon-protected',
-        tdNowrap:     'mmi-rtsm-td-nowrap',
-        codeCommand:  'mmi-rtsm-code-command',
-        tableScroll:  'mmi-rtsm-table-scroll',
-        colPid:       'mmi-rtsm-col-pid',
-        colUser:      'mmi-rtsm-col-user',
-        colCpu:       'mmi-rtsm-col-cpu',
-        colMem:       'mmi-rtsm-col-mem',
-        colElapsed:   'mmi-rtsm-col-elapsed',
-        colKill:      'mmi-rtsm-col-kill',
+        muted:        'mmi-text-muted',
+        tableScroll:  'mmi-table-scroll-wrapper',
+        table:        'mmi-uniform-table mmi-uniform-table--hoverable',
+        truncate:     'rtsm-truncate',
+        nowrap:       'rtsm-nowrap',
+        cpuHigh:      'mmi-text-error',
+        cpuMedium:    'mmi-text-warning',
     };
 
     /* ── Messages ───────────────────────────────────────────────────── */
     const MESSAGES = {
         clearConfirm:        'Are you sure you want to clear all traffic analysis data? This action cannot be undone.',
+        clearLogConfirm:     {
+            traffic: 'Clear the traffic log? This cannot be undone. Download it first if you need a copy.',
+            alert:   'Clear all alerts? This cannot be undone. Download the log first if you need a copy.',
+        },
+        clearLogFail:        'Could not clear the log.',
         enterLicenseKey:     'Please enter a license key',
         deactivateConfirm:   'Are you sure you want to deactivate your license?',
         licenseActivateFail: 'License activation failed',
@@ -59,6 +60,8 @@
     const AJAX_ACTIONS = {
         activateLicense:   'rtsm_activate_license',
         deactivateLicense: 'rtsm_deactivate_license',
+        downloadLog:       'rtsm_download_log',
+        clearLog:          'rtsm_clear_log',
     };
 
     /* ── Data Attributes ────────────────────────────────────────────── */
@@ -69,6 +72,21 @@
         url:        'data-url',
     };
 
+    /**
+     * Delegated click binding. Every tab except the first one shown is
+     * injected later by the rtsm_load_tab AJAX call, so handlers bound
+     * directly at DOMContentLoaded never reached those tabs' buttons.
+     * The handler runs with `this` set to the matched element.
+     */
+    function onClick(selector, handler) {
+        document.addEventListener('click', function(event) {
+            const el = event.target.closest(selector);
+            if (el) {
+                handler.call(el, event);
+            }
+        });
+    }
+
     // ========================================================================
     // RELOAD BUTTON HANDLERS
     // ========================================================================
@@ -77,11 +95,8 @@
      * Simple reload button handler
      */
     function initializeReloadButtons() {
-        const reloadButtons = document.querySelectorAll(SELECTORS.reloadButton);
-        reloadButtons.forEach(button => {
-            button.addEventListener('click', function() {
-                location.reload();
-            });
+        onClick(SELECTORS.reloadButton, function() {
+            location.reload();
         });
     }
 
@@ -93,16 +108,82 @@
      * Handle clear log data with confirmation
      */
     function initializeClearLogButtons() {
-        const clearButton = document.getElementById(SELECTORS.clearLogButton.slice(1));
-        if (clearButton) {
-            clearButton.addEventListener('click', function() {
-                if (confirm(MESSAGES.clearConfirm)) {
-                    const nonce = this.getAttribute(DATA_ATTRS.nonce);
-                    const clearUrl = this.getAttribute(DATA_ATTRS.url);
-                    window.location.href = clearUrl;
-                }
-            });
+        onClick(SELECTORS.clearLogButton, function() {
+            if (confirm(MESSAGES.clearConfirm)) {
+                window.location.href = this.getAttribute(DATA_ATTRS.url);
+            }
+        });
+    }
+
+    // ========================================================================
+    // LOG FILE BUTTONS (Logs tab + Traffic tab "Log File Management")
+    // ========================================================================
+
+    /**
+     * Download / Clear buttons carry data-rtsm-log (traffic|alert) and
+     * data-rtsm-log-action (download|clear).
+     */
+    function initializeLogFileButtons() {
+        onClick(SELECTORS.logButton, function() {
+            const config = window.rtsmAdmin;
+            if (!config || !config.ajaxUrl || !config.nonce) return;
+
+            const log    = this.getAttribute('data-rtsm-log');
+            const action = this.getAttribute('data-rtsm-log-action');
+
+            if (action === 'download') {
+                const url = new URL(config.ajaxUrl, window.location.href);
+                url.searchParams.set('action', AJAX_ACTIONS.downloadLog);
+                url.searchParams.set('log', log);
+                url.searchParams.set('nonce', config.nonce);
+                window.location.href = url.toString();
+                return;
+            }
+
+            if (action !== 'clear') return;
+            if (!confirm(MESSAGES.clearLogConfirm[log] || MESSAGES.clearLogConfirm.traffic)) return;
+
+            const button = this;
+            button.disabled = true;
+
+            const body = new FormData();
+            body.append('action', AJAX_ACTIONS.clearLog);
+            body.append('log', log);
+            body.append('nonce', config.nonce);
+
+            fetch(config.ajaxUrl, { method: 'POST', body: body, credentials: 'same-origin' })
+                .then(function(res) { return res.json(); })
+                .then(function(result) {
+                    if (result.success) {
+                        // Re-render so counts, sizes and empty states update.
+                        location.reload();
+                        return;
+                    }
+                    button.disabled = false;
+                    showLogNotice(button, (result.data && result.data.message) || MESSAGES.clearLogFail, 'error');
+                })
+                .catch(function(error) {
+                    button.disabled = false;
+                    showLogNotice(button, MESSAGES.ajaxError.replace('%error%', error.message), 'error');
+                });
+        });
+    }
+
+    /**
+     * Inline notice at the top of the button's page section (the button may
+     * sit in the section header or in a toolbar inside it).
+     */
+    function showLogNotice(button, message, type) {
+        const section = button.closest('.mmi-process-section');
+        const host    = section ? section.querySelector('.mmi-section-content') : button.parentElement;
+        if (!host) return;
+        let notice = host.querySelector(':scope > .rtsm-log-notice');
+        if (!notice) {
+            notice = document.createElement('div');
+            host.insertAdjacentElement('afterbegin', notice);
         }
+        notice.className = 'rtsm-log-notice ' + [CLASS_NAMES.notice, CLASS_NAMES.noticeInline, CLASS_NAMES.noticePrefix + type].join(' ');
+        notice.innerHTML = '<p>' + escapeHtml(message) + '</p>';
     }
 
     // ========================================================================
@@ -113,30 +194,25 @@
      * Initialize license activation button
      */
     function initializeLicenseActivation() {
-        const activateBtn = document.getElementById(SELECTORS.activateLicense.slice(1));
-        const deactivateBtn = document.getElementById(SELECTORS.deactivateLicense.slice(1));
-        const licenseKeyInput = document.getElementById(SELECTORS.licenseKeyInput.slice(1));
-        const messageDiv = document.getElementById(SELECTORS.licenseMessage.slice(1));
+        onClick(SELECTORS.activateLicense, function() {
+            const licenseKeyInput = document.querySelector(SELECTORS.licenseKeyInput);
+            const messageDiv = document.querySelector(SELECTORS.licenseMessage);
+            if (!licenseKeyInput) return;
 
-        if (activateBtn && licenseKeyInput) {
-            activateBtn.addEventListener('click', function() {
-                const licenseKey = licenseKeyInput.value.trim();
-                if (!licenseKey) {
-                    showMessage(messageDiv, MESSAGES.enterLicenseKey, 'error');
-                    return;
-                }
+            const licenseKey = licenseKeyInput.value.trim();
+            if (!licenseKey) {
+                showMessage(messageDiv, MESSAGES.enterLicenseKey, 'error');
+                return;
+            }
 
-                activateLicense(licenseKey, messageDiv);
-            });
-        }
+            activateLicense(licenseKey, messageDiv);
+        });
 
-        if (deactivateBtn) {
-            deactivateBtn.addEventListener('click', function() {
-                if (confirm(MESSAGES.deactivateConfirm)) {
-                    deactivateLicense(messageDiv);
-                }
-            });
-        }
+        onClick(SELECTORS.deactivateLicense, function() {
+            if (confirm(MESSAGES.deactivateConfirm)) {
+                deactivateLicense(document.querySelector(SELECTORS.licenseMessage));
+            }
+        });
     }
 
     /**
@@ -239,7 +315,7 @@
             btn.classList.add(btnFilter === filter ? 'button-primary' : 'button-secondary');
         });
 
-        container.innerHTML = '<p class="' + CLASS_NAMES.loadingText + '">Loading processes&hellip;</p>';
+        container.innerHTML = '<p class="' + CLASS_NAMES.muted + '"><span class="mmi-loading"></span> Loading processes&hellip;</p>';
 
         const config = window.rtsmAdmin;
         if (!config || !config.ajaxUrl || !config.nonce) {
@@ -258,16 +334,14 @@
                 if (data.success) {
                     renderProcessTable(data.data.processes);
                 } else {
-                    container.classList.remove('processes-loading');
                     const msg = (data.data && data.data.message)
                         ? data.data.message
                         : (typeof data.data === 'string' ? data.data : 'Failed to load processes.');
-                    container.innerHTML = '<div class="notice notice-warning inline ' + CLASS_NAMES.noticeBody + '"><p>' + escapeHtml(msg) + '</p></div>';
+                    container.innerHTML = '<div class="notice notice-warning inline "><p>' + escapeHtml(msg) + '</p></div>';
                 }
             })
             .catch(function() {
-                container.classList.remove('processes-loading');
-                container.innerHTML = '<div class="notice notice-error inline ' + CLASS_NAMES.noticeBody + '"><p>Network error loading processes. Please try again.</p></div>';
+                container.innerHTML = '<div class="notice notice-error inline "><p>Network error loading processes. Please try again.</p></div>';
             });
     }
 
@@ -279,42 +353,40 @@
         const container = document.getElementById('processes-container');
         if (!container) return;
 
-        // Clear loading state — class drives centering/spinner CSS
-        container.classList.remove('processes-loading');
-
         if (!processes || processes.length === 0) {
-            container.innerHTML = '<div class="notice notice-info inline ' + CLASS_NAMES.noticeBody + '"><p>No processes match the current filter.</p></div>';
+            container.innerHTML = '<div class="notice notice-info inline "><p>No processes match the current filter.</p></div>';
             return;
         }
 
         const rows = processes.map(function(p) {
             const cpu     = parseFloat(p.cpu) || 0;
-            const cpuCls  = cpu >= 50 ? ' process-cpu high' : cpu >= 20 ? ' process-cpu medium' : ' process-cpu';
+            const cpuCls  = cpu >= 50 ? CLASS_NAMES.cpuHigh : cpu >= 20 ? CLASS_NAMES.cpuMedium : '';
             const killBtn = p.killable
                 ? '<button type="button" class="button button-small rtsm-kill-process" data-pid="'
                   + escapeHtml(String(p.pid)) + '" title="Terminate process">&#x2715; Kill</button>'
-                : '<span class="' + CLASS_NAMES.protectedIcon + '" title="System process — protected">&#x1F512;</span>';
+                : '<span class="dashicons dashicons-lock ' + CLASS_NAMES.muted + '" title="System process — protected"></span>';
             return '<tr>'
-                + '<td><code class="process-pid">' + escapeHtml(String(p.pid))     + '</code></td>'
-                + '<td>'                                                            + escapeHtml(String(p.user))    + '</td>'
-                + '<td class="' + cpuCls + '">'                                    + escapeHtml(String(p.cpu))     + '%</td>'
-                + '<td>'                                                            + escapeHtml(String(p.mem))     + '%</td>'
-                + '<td class="' + CLASS_NAMES.tdNowrap + '">'                      + escapeHtml(String(p.elapsed)) + '</td>'
-                + '<td><code class="' + CLASS_NAMES.codeCommand + '">'             + escapeHtml(String(p.command)) + '</code></td>'
-                + '<td>'                                                            + killBtn                       + '</td>'
+                + '<td>' + escapeHtml(String(p.pid)) + '</td>'
+                + '<td>' + escapeHtml(String(p.user)) + '</td>'
+                + '<td class="' + cpuCls + '">' + escapeHtml(String(p.cpu)) + '%</td>'
+                + '<td>' + escapeHtml(String(p.mem)) + '%</td>'
+                + '<td class="' + CLASS_NAMES.nowrap + '">' + escapeHtml(String(p.elapsed)) + '</td>'
+                + '<td class="' + CLASS_NAMES.truncate + '" title="' + escapeHtml(String(p.command)) + '"><code>' + escapeHtml(String(p.command)) + '</code></td>'
+                + '<td>' + killBtn + '</td>'
                 + '</tr>';
         }).join('');
 
+        // PID first (ID column rule). Widths are per data-resize-col in admin.css.
         container.innerHTML = '<div class="' + CLASS_NAMES.tableScroll + '">'
-            + '<table class="wp-list-table widefat fixed striped">'
+            + '<table class="' + CLASS_NAMES.table + ' rtsm-process-table">'
             + '<thead><tr>'
-            + '<th class="' + CLASS_NAMES.colPid + '">PID</th>'
-            + '<th class="' + CLASS_NAMES.colUser + '">User</th>'
-            + '<th class="' + CLASS_NAMES.colCpu + '">CPU %</th>'
-            + '<th class="' + CLASS_NAMES.colMem + '">Mem %</th>'
-            + '<th class="' + CLASS_NAMES.colElapsed + '">Elapsed</th>'
-            + '<th>Command</th>'
-            + '<th class="' + CLASS_NAMES.colKill + '">Kill</th>'
+            + '<th data-resize-col="pid">PID</th>'
+            + '<th data-resize-col="user">User</th>'
+            + '<th data-resize-col="cpu">CPU %</th>'
+            + '<th data-resize-col="mem">Mem %</th>'
+            + '<th data-resize-col="elapsed">Elapsed</th>'
+            + '<th data-resize-col="command">Command</th>'
+            + '<th data-resize-col="kill">Kill</th>'
             + '</tr></thead>'
             + '<tbody>' + rows + '</tbody>'
             + '</table></div>';
@@ -348,12 +420,27 @@
                 if (data.success) {
                     loadProcesses(currentProcessFilter);
                 } else {
-                    alert('Kill failed: ' + escapeHtml(String(data.data || 'Unknown error')));
+                    showProcessNotice('Kill failed: ' + String(data.data || 'Unknown error'), 'error');
                 }
             })
             .catch(function() {
-                alert('Network error while killing process. Please try again.');
+                showProcessNotice('Network error while killing process. Please try again.', 'error');
             });
+    }
+
+    /**
+     * Inline notice above the process table (no blocking alert()).
+     */
+    function showProcessNotice(message, type) {
+        const container = document.getElementById('processes-container');
+        if (!container) return;
+        let notice = container.previousElementSibling;
+        if (!notice || !notice.classList.contains('rtsm-process-notice')) {
+            notice = document.createElement('div');
+            container.insertAdjacentElement('beforebegin', notice);
+        }
+        notice.className = 'rtsm-process-notice ' + [CLASS_NAMES.notice, CLASS_NAMES.noticeInline, CLASS_NAMES.noticePrefix + type].join(' ');
+        notice.innerHTML = '<p>' + escapeHtml(message) + '</p>';
     }
 
     // ========================================================================
@@ -364,22 +451,16 @@
      * Initialize process filter buttons
      */
     function initializeProcessFilters() {
-        const filterButtons = document.querySelectorAll(SELECTORS.processFilter);
-        filterButtons.forEach(function(button) {
-            button.addEventListener('click', function() {
-                // Normalize data-filter value (high_cpu → high-cpu) to match PHP
-                const filter = (this.getAttribute(DATA_ATTRS.filter) || 'all').replace('_', '-');
-                loadProcesses(filter);
-            });
+        onClick(SELECTORS.processFilter, function() {
+            // Normalize data-filter value (high_cpu → high-cpu) to match PHP
+            const filter = (this.getAttribute(DATA_ATTRS.filter) || 'all').replace('_', '-');
+            loadProcesses(filter);
         });
 
         // Refresh button — reload with current filter
-        const refreshBtn = document.getElementById(SELECTORS.refreshProcesses.slice(1));
-        if (refreshBtn) {
-            refreshBtn.addEventListener('click', function() {
-                loadProcesses(currentProcessFilter);
-            });
-        }
+        onClick(SELECTORS.refreshProcesses, function() {
+            loadProcesses(currentProcessFilter);
+        });
     }
 
     // ========================================================================
@@ -389,6 +470,7 @@
     document.addEventListener('DOMContentLoaded', function() {
         initializeReloadButtons();
         initializeClearLogButtons();
+        initializeLogFileButtons();
         initializeLicenseActivation();
         initializeProcessFilters();
 

@@ -28,40 +28,30 @@ if (class_exists('MMI_Unified_Metrics')) {
 $show_emergency_notice = $current_load >= 10.0;
 ?>
 
-<div class="wrap mmi-admin-wrap">
-    <!-- MMI Unified Header with License Tier -->
+<div class="wrap mmi-page mmi-rtsm-page">
     <div class="mmi-header">
-        <div>
-            <h1>
-                <span class="dashicons dashicons-performance"></span>
-                Real-Time Server Monitor
-            </h1>
-            <p class="mmi-header-description">Comprehensive server performance monitoring and analysis</p>
-        </div>
+        <h1><span class="dashicons dashicons-performance"></span> Real-Time Server Monitor</h1>
         <div class="mmi-header-actions">
             <?php echo RTSM_Tier_Branding::render_badge( $license_tier ); ?>
             <?php if ( ! $is_licensed ) : ?>
-                <a href="<?php echo esc_url( $license_manager->get_upgrade_url() ); ?>" class="button button-primary rtsm-upgrade-button mmi-action-btn" target="_blank">
-                    <span class="dashicons dashicons-unlock"></span>
-                    Get MMI Suite
+                <a href="<?php echo esc_url( $license_manager->get_upgrade_url() ); ?>" class="button button-primary" target="_blank">
+                    <span class="dashicons dashicons-unlock"></span> Get MMI Suite
                 </a>
             <?php endif; ?>
         </div>
+        <p class="mmi-header-description">Comprehensive server performance monitoring and analysis</p>
     </div>
-    
-    <!-- WordPress Header End Marker - Tells WordPress where to position admin notices -->
     <div class="wp-header-end"></div>
-    
+
     <?php if ($show_emergency_notice): ?>
-        <div class="notice notice-error rtsm-mb-20">
+        <div class="notice notice-error">
             <p>
-                <strong>⚠️ High Server Load Detected (<?php echo number_format($current_load, 2); ?>)</strong><br>
+                <strong>⚠️ High Server Load Detected (<?php echo esc_html(number_format($current_load, 2)); ?>)</strong><br>
                 The server is under heavy load. Check the Process Monitor and Diagnostics tabs for details.
             </p>
         </div>
     <?php endif; ?>
-    
-    <div class="mmi-admin-container">
+
         <!-- Tab Navigation -->
         <nav class="nav-tab-wrapper">
             <a href="<?php echo esc_url( add_query_arg( 'tab', 'dashboard' ) ); ?>" class="nav-tab <?php echo $active_tab === 'dashboard' ? 'nav-tab-active' : ''; ?>" data-tab="dashboard">
@@ -96,8 +86,7 @@ $show_emergency_notice = $current_load >= 10.0;
             </a>
         </nav>
 
-        <!-- Tab Content -->
-        <div class="mmi-tab-content">
+        <!-- Tab panes (inactive ones load via rtsm_load_tab) -->
             <!-- Only load the active tab on page load -->
             <?php
             $tabs = ['dashboard', 'traffic', 'processes', 'diagnostics', 'settings', 'logs'];
@@ -116,7 +105,5 @@ $show_emergency_notice = $current_load >= 10.0;
                 echo '</div>';
             }
             ?>
-        </div>
-    </div>
 </div>
 

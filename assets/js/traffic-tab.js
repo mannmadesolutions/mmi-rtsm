@@ -34,29 +34,23 @@
         ELEVATED:  50,
     };
 
-    /* ── Color Schemes ───────────────────────────────────────────────── */
-    const SEVERITY_COLORS = {
-        EMERGENCY: { color: '#7f1d1d', bg: '#fca5a5', icon: '🚨', borderColor: '#dc2626', cardText: '#7f1d1d', badgeClass: 'rtsm-severity-badge-emergency' },
-        CRITICAL:  { color: '#7c2d12', bg: '#fdba74', icon: '🔴', borderColor: '#ea580c', cardText: '#7c2d12', badgeClass: 'rtsm-severity-badge-critical'  },
-        ELEVATED:  { color: '#78350f', bg: '#fde68a', icon: '⚠️',  borderColor: '#d97706', cardText: '#78350f', badgeClass: 'rtsm-severity-badge-elevated'  },
-        NORMAL:    { color: '#14532d', bg: '#fff', icon: '✅', borderColor: '#45852C', cardText: '#14532d', badgeClass: 'rtsm-severity-badge-normal'    },
+    /* ── Severity → shared state word (matches RTSM_UI_Helpers::SEVERITY_VARIANTS) ── */
+    const SEVERITY = {
+        EMERGENCY: { variant: 'error',   icon: '🚨' },
+        CRITICAL:  { variant: 'error',   icon: '🔴' },
+        ELEVATED:  { variant: 'warning', icon: '⚠️' },
+        NORMAL:    { variant: 'success', icon: '✅' },
     };
 
-    const COLOR_CLASSES = {
-        OK:   'rtsm-color-ok',
-        WARN: 'rtsm-color-warn',
-        CRIT: 'rtsm-color-crit',
+    const VARIANTS = {
+        OK:   'success',
+        WARN: 'warning',
+        CRIT: 'error',
     };
+    const ALL_VARIANTS = 'success warning error info';
 
     const CSS_CLASSES = {
-        SEV_NORMAL:    'rtsm-sev-normal',
-        SEV_ELEVATED:  'rtsm-sev-elevated',
-        SEV_CRITICAL:  'rtsm-sev-critical',
-        SEV_EMERGENCY: 'rtsm-sev-emergency',
-        HIDDEN:        'rtsm-hidden',
-        ACTIVE:        'active',
-        SEVERITY:      'data-threshold',
-        THRESH_TRIGGER: 'thresh-trigger',
+        ACTIVE: 'is-active',
     };
 
     /* ── Performance Thresholds (as % of comfortable capacity) ────────── */
@@ -81,22 +75,22 @@
         statCpuSub:         '#rtsm-stat-cpu-sub',
         statMemPct:         '#rtsm-stat-mem-pct',
         statMemSub:         '#rtsm-stat-mem-sub',
-        loadBarFill:        '#rtsm-load-bar-fill',
+        loadBar:            '#rtsm-load-bar',
+        loadBarFill:        '.rtsm-progress-fill',
         loadBarLabel:       '#rtsm-load-bar-label',
-        loadBarPct:         '.rtsm-load-bar-pct',
         severityBadge:      '#rtsm-severity-badge',
-        statusCard:         '#rtsm-status-card',
-        statusHeading:      '.rtsm-status-heading',
+        statBox:            '.mmi-stat-box',
         statusTime:         '#rtsm-status-time',
         interpretation:     '#rtsm-interpretation',
+        interpBlocks:       '[data-sev]',
         interpLoad:         '[data-interp-load]',
         interpPct:          '[data-interp-pct]',
         mitigationCard:     '#rtsm-mitigation-card',
         mitigationHeading:  '.rtsm-mitigation-heading',
         emergOnlyText:      '.rtsm-emerg-only',
         nonEmergOnlyText:   '.rtsm-non-emerg-only',
-        thresholdCells:     '.rtsm-thresh-cell[data-threshold]',
-        thresholdTrigger:   '.thresh-trigger',
+        thresholdCells:     '.rtsm-threshold[data-threshold]',
+        thresholdBadge:     '.rtsm-threshold-active',
         currentLoad:        '#rtsm-thresh-current-load',
     };
 
@@ -105,7 +99,6 @@
         loadSaturation:    'Load saturation — %pct%% of comfortable capacity (%cores%× cores)',
         whatToDo:          'What To Do — %sev% State',
         updated:           'Updated %time% UTC',
-        currentlyActive:   '▲ CURRENTLY ACTIVE',
         loadPerCore:       '%load% per core (%cores% cores)',
         memoryUsage:       '%used% / %total%',
         loadMinutes:       '%5min% · %15min% (5 / 15 min)',
@@ -113,26 +106,10 @@
         pollError:         'RTSM Traffic Tab poll error:',
     };
 
-    const BADGE_STYLES = {
-        display:       'inline-block',
-        padding:       '1px 7px',
-        borderRadius:  '12px',
-        fontSize:      '11px',
-        fontWeight:    '600',
-        marginRight:   '10px',
-    };
-
     /* ── AJAX Config ─────────────────────────────────────────────────── */
     const AJAX_ACTION = 'rtsm_get_stats';
 
     /* ── Severity helpers ────────────────────────────────────────────── */
-    const SEV_CLASSES = [
-        CSS_CLASSES.SEV_NORMAL,
-        CSS_CLASSES.SEV_ELEVATED,
-        CSS_CLASSES.SEV_CRITICAL,
-        CSS_CLASSES.SEV_EMERGENCY,
-    ];
-
     /**
      * Derive severity string from load and core count using load bar percentage.
      * This ensures the load bar color and severity badge are always in sync.
@@ -146,26 +123,22 @@
         return 'NORMAL';
     }
 
-    /** Build the severity badge HTML string (mirrors rtsm_severity_badge() in PHP). */
+    /** Build the severity badge HTML string (mirrors RTSM_UI_Helpers::severity_badge()). */
     function buildBadgeHtml(sev) {
-        const colorSet = SEVERITY_COLORS[sev] || SEVERITY_COLORS.NORMAL;
-        return `<span class="rtsm-severity-badge ${colorSet.badgeClass}">${colorSet.icon} ${sev}</span>`;
+        const conf = SEVERITY[sev] || SEVERITY.NORMAL;
+        return `<span class="mmi-badge ${conf.variant}">${conf.icon} ${sev}</span>`;
     }
 
-    /** Return the border/text colours for the status card per severity. */
-    function statusCardColors(sev) {
-        const colorSet = SEVERITY_COLORS[sev] || SEVERITY_COLORS.NORMAL;
-        return {
-            border: colorSet.borderColor,
-            text:   colorSet.cardText,
-        };
+    /** Return a shared state word based on a value and two thresholds. */
+    function variantFor(val, warnAt, critAt) {
+        if (val >= critAt) { return VARIANTS.CRIT; }
+        if (val >= warnAt) { return VARIANTS.WARN; }
+        return VARIANTS.OK;
     }
 
-    /** Return a CSS colour class based on a value and two thresholds. */
-    function colorClass(val, warnAt, critAt) {
-        if (val >= critAt) { return COLOR_CLASSES.CRIT; }
-        if (val >= warnAt) { return COLOR_CLASSES.WARN; }
-        return COLOR_CLASSES.OK;
+    /** Set a value element's text and recolor the stat tile around it. */
+    function setStat(selector, text, variant) {
+        $(selector).text(text).closest(SELECTORS.statBox).removeClass(ALL_VARIANTS).addClass(variant);
     }
 
     /* ── DOM updater ─────────────────────────────────────────────────── */
@@ -182,25 +155,16 @@
         const memTot  = (data.memory && data.memory.total) ? data.memory.total : '—';
 
         const sev    = getSeverity(load1, cpuCores);
-        const colors = statusCardColors(sev);
 
         /* ── Load average ── */
-        const loadCls = colorClass(load1, cpuCores * (PERF_THRESHOLDS.loadWarnPct / 100), cpuCores);
-        $(SELECTORS.statLoad1)
-            .text(load1.toFixed(2))
-            .removeClass(COLOR_CLASSES.OK + ' ' + COLOR_CLASSES.WARN + ' ' + COLOR_CLASSES.CRIT)
-            .addClass(loadCls);
+        setStat(SELECTORS.statLoad1, load1.toFixed(2), variantFor(load1, cpuCores * (PERF_THRESHOLDS.loadWarnPct / 100), cpuCores));
         const loadSubText = MESSAGES.loadMinutes
             .replace('%5min%', load5.toFixed(2))
             .replace('%15min%', load15.toFixed(2));
         $(SELECTORS.statLoadSub).text(loadSubText);
 
         /* ── CPU % (actual from /proc/stat — matches admin bar) ── */
-        const cpuCls = colorClass(cpuPct, PERF_THRESHOLDS.cpuWarnPct, PERF_THRESHOLDS.cpuCritPct);
-        $(SELECTORS.statCpuPct)
-            .text(cpuPct.toFixed(2) + '%')
-            .removeClass(COLOR_CLASSES.OK + ' ' + COLOR_CLASSES.WARN + ' ' + COLOR_CLASSES.CRIT)
-            .addClass(cpuCls);
+        setStat(SELECTORS.statCpuPct, cpuPct.toFixed(2) + '%', variantFor(cpuPct, PERF_THRESHOLDS.cpuWarnPct, PERF_THRESHOLDS.cpuCritPct));
         const loadPerCore = (load1 / cpuCores).toFixed(2);
         const cpuSubText = MESSAGES.loadPerCore
             .replace('%load%', loadPerCore)
@@ -208,11 +172,7 @@
         $(SELECTORS.statCpuSub).text(cpuSubText);
 
         /* ── Memory ── */
-        const memCls = colorClass(memPct, PERF_THRESHOLDS.memWarnPct, PERF_THRESHOLDS.memCritPct);
-        $(SELECTORS.statMemPct)
-            .text(memPct.toFixed(2) + '%')
-            .removeClass(COLOR_CLASSES.OK + ' ' + COLOR_CLASSES.WARN + ' ' + COLOR_CLASSES.CRIT)
-            .addClass(memCls);
+        setStat(SELECTORS.statMemPct, memPct.toFixed(2) + '%', variantFor(memPct, PERF_THRESHOLDS.memWarnPct, PERF_THRESHOLDS.memCritPct));
         const memSubText = MESSAGES.memoryUsage
             .replace('%used%', memUsed)
             .replace('%total%', memTot);
@@ -220,43 +180,38 @@
 
         /* ── Load bar ── */
         const barPct    = Math.min(BAR_PERCENT_CAP, Math.round((load1 / (cpuCores * CORE_MULTIPLIER)) * 100));
-        const barColor  = barPct >= SEVERITY_THRESHOLDS.CRITICAL ? SEVERITY_COLORS.CRITICAL.borderColor
-                        : (barPct >= SEVERITY_THRESHOLDS.ELEVATED ? SEVERITY_COLORS.ELEVATED.borderColor
-                        : SEVERITY_COLORS.NORMAL.borderColor);
-        const $loadBar = $(SELECTORS.loadBarFill);
-        $loadBar[0].style.setProperty('--load-pct', barPct + '%');
-        $loadBar[0].style.setProperty('--bar-color', barColor);
-        $(SELECTORS.loadBarPct).text(barPct);
+        const barVariant = barPct >= SEVERITY_THRESHOLDS.CRITICAL ? VARIANTS.CRIT
+                         : (barPct >= SEVERITY_THRESHOLDS.ELEVATED ? VARIANTS.WARN : VARIANTS.OK);
+        const $loadBar = $(SELECTORS.loadBar);
+        $loadBar.removeClass('is-success is-warning is-error is-info').addClass(`is-${barVariant}`);
+        const fill = $loadBar.find(SELECTORS.loadBarFill)[0];
+        if (fill) { fill.style.setProperty('--fill-pct', barPct + '%'); }
         const barLabel = MESSAGES.loadSaturation
             .replace('%pct%', barPct)
             .replace('%cores%', CORE_MULTIPLIER);
         $(SELECTORS.loadBarLabel).text(barLabel);
 
-        /* ── Severity badge + status card colours ── */
+        /* ── Severity badge ── */
         $(SELECTORS.severityBadge).html(buildBadgeHtml(sev));
-        const card = $(SELECTORS.statusCard);
-        card[0].style.setProperty('--border-color', colors.border);
-        card[0].style.setProperty('--text-color', colors.text);
 
         /* ── Interpretation block: swap active class on wrapper ── */
         const interp = $(SELECTORS.interpretation);
-        interp.removeClass(SEV_CLASSES.join(' '));
-        interp.addClass('rtsm-sev-' + sev.toLowerCase());
+        interp.find(SELECTORS.interpBlocks).each(function () {
+            this.hidden = this.getAttribute('data-sev') !== sev.toLowerCase();
+        });
         // Refresh dynamic values inside each interpretation block
         interp.find(SELECTORS.interpLoad).text(load1.toFixed(2));
         interp.find(SELECTORS.interpPct).text(Math.round((load1 / cpuCores) * 100));
 
         /* ── Mitigation card: show only when severity !== NORMAL ── */
         const mitCard = $(SELECTORS.mitigationCard);
-        if (sev === 'NORMAL') {
-            mitCard.addClass(CSS_CLASSES.HIDDEN);
-        } else {
-            mitCard.removeClass(CSS_CLASSES.HIDDEN);
+        mitCard.prop('hidden', sev === 'NORMAL');
+        if (sev !== 'NORMAL') {
             const mitigationTitle = MESSAGES.whatToDo.replace('%sev%', sev);
             mitCard.find(SELECTORS.mitigationHeading).text(mitigationTitle);
             // Highlight EMERGENCY-specific line
-            mitCard.find(SELECTORS.emergOnlyText).toggle(sev === 'EMERGENCY');
-            mitCard.find(SELECTORS.nonEmergOnlyText).toggle(sev !== 'EMERGENCY');
+            mitCard.find(SELECTORS.emergOnlyText).prop('hidden', sev !== 'EMERGENCY');
+            mitCard.find(SELECTORS.nonEmergOnlyText).prop('hidden', sev === 'EMERGENCY');
         }
 
         /* ── Threshold cells: toggle 'active' class (aligned with load bar severity %) ── */
@@ -270,15 +225,8 @@
             const key  = $(this).data('threshold');
             const meta = thresholdMeta[key];
             if (!meta) { return; }
-            if (meta.active) {
-                $(this).addClass(CSS_CLASSES.ACTIVE);
-                if (!$(this).find(SELECTORS.thresholdTrigger).length) {
-                    $(this).append(`<div class="${CSS_CLASSES.THRESH_TRIGGER}">${MESSAGES.currentlyActive}</div>`);
-                }
-            } else {
-                $(this).removeClass(CSS_CLASSES.ACTIVE);
-                $(this).find(SELECTORS.thresholdTrigger).remove();
-            }
+            $(this).toggleClass(CSS_CLASSES.ACTIVE, meta.active);
+            $(this).find(SELECTORS.thresholdBadge).prop('hidden', !meta.active);
         });
         $(SELECTORS.currentLoad).text(load1.toFixed(2));
 
@@ -309,22 +257,22 @@
 
     /* ── Init ────────────────────────────────────────────────────────── */
     $(function () {
-        if (!$(SELECTORS.trafficWrap).length) { return; }
-
-        /* When the admin bar popup script is present it dispatches 'rtsm:stats'
-           after every successful fetch.  Subscribe to that shared event so both
-           surfaces always show the same snapshot — no extra AJAX calls needed. */
+        /* The Traffic tab may arrive later via rtsm_load_tab, so wire the
+           updates up unconditionally; poll()/updateTrafficTab() no-op while
+           the tab isn't in the DOM. */
         if (window.rtsmConfig) {
+            /* The admin bar popup dispatches 'rtsm:stats' after every fetch —
+               reuse its snapshot so both surfaces show the same numbers. */
             document.addEventListener('rtsm:stats', function (e) {
                 updateTrafficTab(e.detail);
             });
-            /* One immediate fetch in case admin bar hasn't fired yet on load. */
-            poll();
         } else {
-            /* Admin bar not on this page; poll independently. */
-            poll();
             setInterval(poll, intervalMs);
         }
+        poll();
+        $(document).on('rtsm_tab_loaded', function (event, tabName) {
+            if (tabName === 'traffic') { poll(); }
+        });
     });
 
 }(jQuery));

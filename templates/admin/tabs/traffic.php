@@ -65,16 +65,7 @@ if ( $load_bar_pct >= 100 )     { $severity = 'EMERGENCY'; }
 elseif ( $load_bar_pct >= 80 )  { $severity = 'CRITICAL'; }
 elseif ( $load_bar_pct >= 50 )  { $severity = 'ELEVATED'; }
 
-/* ──────────────────────────────────────────────────────────────────────────
- * Severity color schemes (keyed by severity level)
- * ────────────────────────────────────────────────────────────────────────── */
-$severity_colours = [
-    'NORMAL'    => [ 'bg' => '#f0fdf4', 'border' => '#45852C', 'badge'  => '#45852C', 'text' => '#14532d', 'css_class' => 'rtsm-sev-normal-theme' ],
-    'ELEVATED'  => [ 'bg' => '#fffbeb', 'border' => '#d97706', 'badge'  => '#d97706', 'text' => '#78350f', 'css_class' => 'rtsm-sev-elevated-theme' ],
-    'CRITICAL'  => [ 'bg' => '#fff7ed', 'border' => '#ea580c', 'badge'  => '#ea580c', 'text' => '#7c2d12', 'css_class' => 'rtsm-sev-critical-theme' ],
-    'EMERGENCY' => [ 'bg' => '#fef2f2', 'border' => '#dc2626', 'badge'  => '#dc2626', 'text' => '#7f1d1d', 'css_class' => 'rtsm-sev-emergency-theme' ],
-];
-$sc = $severity_colours[ $severity ];
+$severity_variant = RTSM_UI_Helpers::SEVERITY_VARIANTS[ $severity ]['variant'];
 
 // Auto-remediation setting — drives threshold card copy and conditional links
 $auto_maintenance_on = (bool) RTSM_Settings_Manager::get_instance()->get('rtsm_auto_maintenance', 0);
@@ -147,299 +138,267 @@ if ( file_exists( $alert_file ) ) {
  * ────────────────────────────────────────────────────────────────────────── */
 $stats = RTSM_Traffic_Logger::get_analysis_summary();
 
-/* ──────────────────────────────────────────────────────────────────────────
- * Helper: severity badge HTML
- * ────────────────────────────────────────────────────────────────────────── */
-function rtsm_severity_badge( $sev ) {
-    // Modifier classes and icons must match traffic-tab.js's own SEVERITY_COLORS/
-    // buildBadgeHtml() exactly — this PHP function renders the initial page-load
-    // state, JS's own version replaces it on every subsequent poll (both target the
-    // same #rtsm-severity-badge element). They used to render two different shapes
-    // (this one as .rtsm-mini-badge with inline CSS vars, JS's as .rtsm-severity-badge
-    // + a modifier class) — the badge visibly changed shape the instant the first
-    // poll completed. Unified onto JS's shape/class scheme.
-    $icons = [
-        'EMERGENCY' => '🚨',
-        'CRITICAL'  => '🔴',
-        'ELEVATED'  => '⚠️',
-        'NORMAL'    => '✅',
-    ];
-    $icon     = $icons[ $sev ] ?? $icons['NORMAL'];
-    $modifier = 'rtsm-severity-badge-' . strtolower( isset( $icons[ $sev ] ) ? $sev : 'NORMAL' );
-    return sprintf(
-        '<span class="rtsm-severity-badge %s">%s %s</span>',
-        esc_attr( $modifier ), $icon, esc_html( $sev )
-    );
-}
-
-// CSS color classes for initial PHP render — JS will update these on each poll.
-$load_color_cls    = $load_1min >= $cpu_cores          ? 'rtsm-color-crit' : ( $load_1min >= $cpu_cores * 0.625 ? 'rtsm-color-warn' : 'rtsm-color-ok' );
-$cpu_color_cls     = $cpu_pct   >= 90                  ? 'rtsm-color-crit' : ( $cpu_pct   >= 60               ? 'rtsm-color-warn' : 'rtsm-color-ok' );
-$mem_color_cls     = $mem_pct   >= 85                  ? 'rtsm-color-crit' : ( $mem_pct   >= 60               ? 'rtsm-color-warn' : 'rtsm-color-ok' );
-$workers_color_cls = $php_workers >= 30                ? 'rtsm-color-crit' : ( $php_workers >= 15             ? 'rtsm-color-warn' : 'rtsm-color-ok' );
+// Stat-tile states for the initial render — traffic-tab.js recomputes them on
+// every poll with the same thresholds.
+$load_variant    = $load_1min >= $cpu_cores ? 'error' : ( $load_1min >= $cpu_cores * 0.625 ? 'warning' : 'success' );
+$cpu_variant     = $cpu_pct   >= 90 ? 'error' : ( $cpu_pct   >= 60 ? 'warning' : 'success' );
+$mem_variant     = $mem_pct   >= 85 ? 'error' : ( $mem_pct   >= 60 ? 'warning' : 'success' );
+$workers_variant = $php_workers >= 30 ? 'error' : ( $php_workers >= 15 ? 'warning' : 'success' );
+$bar_variant     = $load_bar_pct >= 80 ? 'error' : ( $load_bar_pct >= 50 ? 'warning' : 'success' );
 ?>
 
-<div class="rtsm-traffic-wrap" id="rtsm-traffic-wrap">
+<div class="rtsm-traffic" id="rtsm-traffic-wrap">
 
 <?php /* ── 1. CURRENT SERVER STATUS ──────────────────────────────────── */ ?>
-<div id="rtsm-status-card" class="rtsm-card rtsm-status-card-theme" data-severity="<?php echo esc_attr( strtolower($severity) ); ?>" style="--border-color:<?php echo esc_attr($sc['border']); ?>;--bg-color:<?php echo esc_attr($sc['bg']); ?>;--text-color:<?php echo esc_attr($sc['text']); ?>;">
-    <h2 class="rtsm-status-heading">
-        <span class="dashicons dashicons-performance"></span>
-        Current Server Status &nbsp;
-        <span id="rtsm-severity-badge"><?php echo rtsm_severity_badge( $severity ); ?></span>
-        <span id="rtsm-status-time" class="rtsm-status-time">Updated <?php echo esc_html( current_time('H:i:s') ); ?> UTC</span>
-    </h2>
+<div id="rtsm-status-card" class="mmi-process-section" data-severity="<?php echo esc_attr( strtolower( $severity ) ); ?>">
+    <?php echo RTSM_UI_Helpers::section_header(
+        'performance',
+        'Current Server Status',
+        'Live load against this server\'s ' . $cpu_cores . ' CPU cores.',
+        ' <span id="rtsm-severity-badge">' . RTSM_UI_Helpers::severity_badge( $severity ) . '</span>',
+        '<span id="rtsm-status-time" class="mmi-text-muted">Updated ' . esc_html( current_time( 'H:i:s' ) ) . ' UTC</span>'
+    ); ?>
+    <div class="mmi-section-content">
+        <div class="mmi-stats-grid">
+            <div class="mmi-stat-box inline <?php echo esc_attr( $load_variant ); ?>">
+                <div class="mmi-stat-label">Load (1 min)</div>
+                <div id="rtsm-stat-load1" class="mmi-stat-value"><?php echo esc_html( $load_1min ); ?></div>
+                <div id="rtsm-stat-load-sub" class="mmi-stat-meta"><?php echo esc_html( $load_5min ); ?> · <?php echo esc_html( $load_15min ); ?> (5 / 15 min)</div>
+            </div>
+            <div class="mmi-stat-box inline <?php echo esc_attr( $cpu_variant ); ?>">
+                <div class="mmi-stat-label">CPU Usage</div>
+                <div id="rtsm-stat-cpu-pct" class="mmi-stat-value"><?php echo esc_html( $cpu_pct ); ?>%</div>
+                <div id="rtsm-stat-cpu-sub" class="mmi-stat-meta"><?php echo esc_html( $load_per_core ); ?> per core (<?php echo esc_html( $cpu_cores ); ?> cores)</div>
+            </div>
+            <div class="mmi-stat-box inline <?php echo esc_attr( $mem_variant ); ?>">
+                <div class="mmi-stat-label">Memory Used</div>
+                <div id="rtsm-stat-mem-pct" class="mmi-stat-value"><?php echo esc_html( $mem_pct ); ?>%</div>
+                <div id="rtsm-stat-mem-sub" class="mmi-stat-meta"><?php echo esc_html( number_format( $mem_used_mb ) ); ?> MB / <?php echo esc_html( number_format( $mem_total_mb ) ); ?> MB</div>
+            </div>
+            <div class="mmi-stat-box inline <?php echo esc_attr( $workers_variant ); ?>">
+                <div class="mmi-stat-label">PHP-FPM Workers</div>
+                <div id="rtsm-stat-workers" class="mmi-stat-value"><?php echo esc_html( $php_workers ); ?></div>
+                <div class="mmi-stat-meta">Active processes</div>
+            </div>
+        </div>
 
-    <div class="rtsm-status-grid">
-        <div class="rtsm-stat-cell">
-            <div id="rtsm-stat-load1" class="val <?php echo esc_attr($load_color_cls); ?>"><?php echo esc_html( $load_1min ); ?></div>
-            <div class="lbl">Load (1 min)</div>
-            <div id="rtsm-stat-load-sub" class="sub"><?php echo esc_html( $load_5min ); ?> · <?php echo esc_html( $load_15min ); ?> (5 / 15 min)</div>
+        <div class="rtsm-severity">
+            <div id="rtsm-load-bar-label" class="rtsm-severity-label">Load saturation — <?php echo esc_html( $load_bar_pct ); ?>% of comfortable capacity (2× cores)</div>
+            <?php echo RTSM_UI_Helpers::progress_bar( $load_bar_pct, $bar_variant, 'rtsm-load-bar' ); ?>
         </div>
-        <div class="rtsm-stat-cell">
-            <div id="rtsm-stat-cpu-pct" class="val <?php echo esc_attr($cpu_color_cls); ?>"><?php echo esc_html( $cpu_pct ); ?>%</div>
-            <div class="lbl">CPU Usage</div>
-            <div id="rtsm-stat-cpu-sub" class="sub"><?php echo esc_html( $load_per_core ); ?> per core&nbsp;(<?php echo esc_html( $cpu_cores ); ?> cores)</div>
-        </div>
-        <div class="rtsm-stat-cell">
-            <div id="rtsm-stat-mem-pct" class="val <?php echo esc_attr($mem_color_cls); ?>"><?php echo esc_html( $mem_pct ); ?>%</div>
-            <div class="lbl">Memory Used</div>
-            <div id="rtsm-stat-mem-sub" class="sub"><?php echo esc_html( number_format($mem_used_mb) ); ?> MB / <?php echo esc_html( number_format($mem_total_mb) ); ?> MB</div>
-        </div>
-        <div class="rtsm-stat-cell">
-            <div id="rtsm-stat-workers" class="val <?php echo esc_attr($workers_color_cls); ?>"><?php echo esc_html( $php_workers ); ?></div>
-            <div class="lbl">PHP-FPM Workers</div>
-            <div class="sub">Active processes</div>
-        </div>
-    </div>
 
-    <!-- Load bar -->
-    <div class="rtsm-load-bar-wrap">
-        <div id="rtsm-load-bar-label" class="rtsm-load-bar-label">Load saturation &mdash; <span class="rtsm-load-bar-pct"><?php echo esc_html($load_bar_pct); ?></span>% of comfortable capacity (2&times; cores)</div>
-        <div class="rtsm-load-bar-bg">
-            <div id="rtsm-load-bar-fill" class="rtsm-load-bar-fill" data-load-pct="<?php echo esc_attr($load_bar_pct); ?>" style="--load-pct:<?php echo esc_attr($load_bar_pct); ?>%;"></div>
-        </div>
-    </div>
-
-    <!-- Interpretation — all four variants always in DOM; CSS + JS show the active one via rtsm-sev-* class -->
-    <div id="rtsm-interpretation" class="rtsm-interpretation rtsm-sev-<?php echo esc_attr( strtolower($severity) ); ?>" style="--bg-color:<?php echo esc_attr($sc['bg']); ?>;--border-color:<?php echo esc_attr($sc['border']); ?>;--text-color:<?php echo esc_attr($sc['text']); ?>;">
-        <div class="rtsm-interp-block rtsm-interp-normal">
-            <strong>✅ All systems nominal</strong>
-            Load saturation is below 50%. Your server is comfortably handling the current request volume. Load <span data-interp-load><?php echo esc_html($load_1min); ?></span> on <?php echo esc_html($cpu_cores); ?> core(s) = <span data-interp-pct><?php echo esc_html($load_pct); ?></span>% utilisation. Requests are being processed faster than they arrive. No action required — keep monitoring.
-        </div>
-        <div class="rtsm-interp-block rtsm-interp-elevated">
-            <strong>⚠️ Elevated — monitor closely</strong>
-            Load saturation is 50–79%. Your server is busier than comfortable but not yet critical. Load <span data-interp-load><?php echo esc_html($load_1min); ?></span> on <?php echo esc_html($cpu_cores); ?> core(s) indicates requests are queuing slightly. Monitor traffic sources below closely. If this state persists for more than 10 minutes, investigate the spike source (high-traffic URLs, bot activity, or resource-intensive tasks). Automatic traffic logging has activated.
-        </div>
-        <div class="rtsm-interp-block rtsm-interp-critical">
-            <strong>🔴 Critical — take action now</strong>
-            Load saturation is 80–99%. Your server is significantly overloaded. Load <span data-interp-load><?php echo esc_html($load_1min); ?></span> on <?php echo esc_html($cpu_cores); ?> core(s) means response times are degraded and requests are backing up. Check the Recent Alerts log immediately to identify the traffic source. Enable bot protection, rate limiting, or manual query caching. If auto-remediation is active, it should activate emergency measures shortly.
-        </div>
-        <div class="rtsm-interp-block rtsm-interp-emergency">
-            <strong>🚨 Emergency — server under severe stress</strong>
-            Load saturation exceeds 100%! Your server is in critical overload. Load <span data-interp-load><?php echo esc_html($load_1min); ?></span> on <?php echo esc_html($cpu_cores); ?> core(s) is unsustainable — pages are timing out and requests may return HTTP 500 errors. Emergency lockdown and auto-remediation have been triggered. Immediately investigate and block attack traffic, reduce database queries, enable aggressive caching, and consider temporarily disabling non-critical features.
+        <?php /* All four always in the DOM; traffic-tab.js un-hides the one matching the live severity. */ ?>
+        <div id="rtsm-interpretation">
+            <div class="mmi-info-card success" data-sev="normal"<?php echo $severity === 'NORMAL' ? '' : ' hidden'; ?>>
+                <h3>✅ All systems nominal</h3>
+                <p>Load saturation is below 50%. Your server is comfortably handling the current request volume. Load <span data-interp-load><?php echo esc_html( $load_1min ); ?></span> on <?php echo esc_html( $cpu_cores ); ?> core(s) = <span data-interp-pct><?php echo esc_html( $load_pct ); ?></span>% utilisation. Requests are being processed faster than they arrive. No action required — keep monitoring.</p>
+            </div>
+            <div class="mmi-info-card warning" data-sev="elevated"<?php echo $severity === 'ELEVATED' ? '' : ' hidden'; ?>>
+                <h3>⚠️ Elevated — monitor closely</h3>
+                <p>Load saturation is 50–79%. Your server is busier than comfortable but not yet critical. Load <span data-interp-load><?php echo esc_html( $load_1min ); ?></span> on <?php echo esc_html( $cpu_cores ); ?> core(s) indicates requests are queuing slightly. Monitor traffic sources below closely. If this state persists for more than 10 minutes, investigate the spike source (high-traffic URLs, bot activity, or resource-intensive tasks). Automatic traffic logging has activated.</p>
+            </div>
+            <div class="mmi-info-card error inline" data-sev="critical"<?php echo $severity === 'CRITICAL' ? '' : ' hidden'; ?>>
+                <h3>🔴 Critical — take action now</h3>
+                <p>Load saturation is 80–99%. Your server is significantly overloaded. Load <span data-interp-load><?php echo esc_html( $load_1min ); ?></span> on <?php echo esc_html( $cpu_cores ); ?> core(s) means response times are degraded and requests are backing up. Check the Recent Alerts log immediately to identify the traffic source. Enable bot protection, rate limiting, or manual query caching. If auto-remediation is active, it should activate emergency measures shortly.</p>
+            </div>
+            <div class="mmi-info-card error inline" data-sev="emergency"<?php echo $severity === 'EMERGENCY' ? '' : ' hidden'; ?>>
+                <h3>🚨 Emergency — server under severe stress</h3>
+                <p>Load saturation exceeds 100%! Your server is in critical overload. Load <span data-interp-load><?php echo esc_html( $load_1min ); ?></span> on <?php echo esc_html( $cpu_cores ); ?> core(s) is unsustainable — pages are timing out and requests may return HTTP 500 errors. Emergency lockdown and auto-remediation have been triggered. Immediately investigate and block attack traffic, reduce database queries, enable aggressive caching, and consider temporarily disabling non-critical features.</p>
+            </div>
         </div>
     </div>
 </div>
 
 <?php /* ── 2. MITIGATION GUIDANCE ────────────────────────────────────── */ ?>
-<div id="rtsm-mitigation-card" class="rtsm-card<?php echo $severity === 'NORMAL' ? ' rtsm-hidden' : ''; ?>">
-    <h2><span class="dashicons dashicons-sos"></span> <span class="rtsm-mitigation-heading">What To Do &mdash; <?php echo esc_html($severity); ?> State</span></h2>
-    <div class="rtsm-mitigation-grid">
-
-        <div class="rtsm-mitigation-item">
-            <h4>🔍 Diagnose the load source</h4>
-            <ul>
-                <li>Check <strong>Recent Alerts</strong> below — identify which IP / URL is generating volume.</li>
-                <li>Look at <strong>Top High-Load URLs</strong> in Historical Analysis — repeated hits to a single path suggest a scraper or bot.</li>
-                <li>High <em>PHP worker</em> count + low memory use → CPU-bound PHP (bad query, missing cache).</li>
-                <li>High PHP workers + high memory → memory pressure; consider increasing PHP-FPM pool limits.</li>
-            </ul>
+<div id="rtsm-mitigation-card" class="mmi-process-section"<?php echo $severity === 'NORMAL' ? ' hidden' : ''; ?>>
+    <div class="mmi-section-header">
+        <div>
+            <h3 class="mmi-process-section-header"><span class="dashicons dashicons-sos"></span> <span class="rtsm-mitigation-heading">What To Do — <?php echo esc_html( $severity ); ?> State</span></h3>
+            <p class="mmi-process-section-description">Shown only while load is above normal.</p>
         </div>
-
-        <div class="rtsm-mitigation-item">
-            <h4>🛡️ Block bad actors at Cloudflare (fastest relief)</h4>
-            <ul>
-                <li>Go to Cloudflare → Security → WAF — add a block rule for the offending IP or user-agent.</li>
-                <li>Enabling Cloudflare Under Attack Mode in your Cloudflare dashboard gives instant 5-second JS challenge to all visitors — without taking your site offline.</li>
-            </ul>
+    </div>
+    <div class="mmi-section-content">
+        <div class="mmi-grid-2">
+            <div class="mmi-widget">
+                <h3>🔍 Diagnose the load source</h3>
+                <ul>
+                    <li>Check <strong>Recent Alerts</strong> below — identify which IP / URL is generating volume.</li>
+                    <li>Look at <strong>Top High-Load URLs</strong> in Historical Analysis — repeated hits to a single path suggest a scraper or bot.</li>
+                    <li>High <em>PHP worker</em> count + low memory use → CPU-bound PHP (bad query, missing cache).</li>
+                    <li>High PHP workers + high memory → memory pressure; consider increasing PHP-FPM pool limits.</li>
+                </ul>
+            </div>
+            <div class="mmi-widget">
+                <h3>🛡️ Block bad actors at Cloudflare (fastest relief)</h3>
+                <ul>
+                    <li>Go to Cloudflare → Security → WAF — add a block rule for the offending IP or user-agent.</li>
+                    <li>Enabling Cloudflare Under Attack Mode in your Cloudflare dashboard gives instant 5-second JS challenge to all visitors — without taking your site offline.</li>
+                </ul>
+            </div>
+            <div class="mmi-widget">
+                <h3>⚙️ WooCommerce / WordPress quick wins</h3>
+                <ul>
+                    <li>Verify a page cache is active (WP Rocket, LiteSpeed, Cloudflare cache rules).</li>
+                    <li>Ensure WooCommerce <code>?add-to-cart=</code> requests from bots are redirected before PHP runs (see Cloudflare rules).</li>
+                    <li>Disable WooCommerce cart fragment AJAX for unauthenticated visitors to reduce DB writes under pressure.</li>
+                    <li>Check for runaway WP-Cron jobs — cron firing every second = each cron spawns a PHP worker.</li>
+                </ul>
+            </div>
+            <div class="mmi-widget">
+                <h3>🗄️ Database &amp; PHP-FPM checks</h3>
+                <ul>
+                    <li>A <code>SHOW PROCESSLIST;</code> in MySQL will reveal locked or long-running queries driving load.</li>
+                    <li>PHP-FPM max_children default = 5 on shared plans — increase to 20–30 if workers are exhausted.</li>
+                    <li>Enable OPcache if not already active — reduces per-request PHP compile time dramatically.</li>
+                    <li class="rtsm-emerg-only"<?php echo $severity !== 'EMERGENCY' ? ' hidden' : ''; ?>><strong>Consider enabling maintenance mode</strong> via WP Settings to stop all non-admin traffic while you diagnose.</li>
+                    <li class="rtsm-non-emerg-only"<?php echo $severity === 'EMERGENCY' ? ' hidden' : ''; ?>>Monitor via RunCloud → PHP → PHP-FPM status.</li>
+                </ul>
+                <a class="button button-secondary" href="<?php echo esc_url( admin_url( 'admin.php?page=mmi-rtsm&tab=processes' ) ); ?>"><span class="dashicons dashicons-editor-ul"></span> View Process Monitor</a>
+            </div>
         </div>
-
-        <div class="rtsm-mitigation-item">
-            <h4>⚙️ WooCommerce / WordPress quick wins</h4>
-            <ul>
-                <li>Verify a page cache is active (WP Rocket, LiteSpeed, Cloudflare cache rules).</li>
-                <li>Ensure WooCommerce <code>?add-to-cart=</code> requests from bots are redirected before PHP runs (see Cloudflare rules).</li>
-                <li>Disable WooCommerce cart fragment AJAX for unauthenticated visitors to reduce DB writes under pressure.</li>
-                <li>Check for runaway WP-Cron jobs — cron firing every second = each cron spawns a PHP worker.</li>
-            </ul>
-        </div>
-
-        <div class="rtsm-mitigation-item">
-            <h4>🗄️ Database &amp; PHP-FPM checks</h4>
-            <ul>
-                <li>A <code>SHOW PROCESSLIST;</code> in MySQL will reveal locked or long-running queries driving load.</li>
-                <li>PHP-FPM max_children default = 5 on shared plans — increase to 20–30 if workers are exhausted.</li>
-                <li>Enable OPcache if not already active — reduces per-request PHP compile time dramatically.</li>
-                <li class="rtsm-emerg-only<?php echo $severity !== 'EMERGENCY' ? ' rtsm-hidden' : ''; ?>"><strong>Consider enabling maintenance mode</strong> via WP Settings to stop all non-admin traffic while you diagnose.</li>
-                <li class="rtsm-non-emerg-only<?php echo $severity === 'EMERGENCY' ? ' rtsm-hidden' : ''; ?>">Monitor via RunCloud &rarr; PHP &rarr; PHP-FPM status.</li>
-            </ul>
-            <a class="rtsm-action-link" href="<?php echo esc_url( admin_url('admin.php?page=mmi-rtsm&tab=processes') ); ?>">→ View Process Monitor</a>
-        </div>
-
     </div>
 </div>
 
-<?php /* ── 4. AUTO-REMEDIATION THRESHOLDS ──────────────────────────────── */ ?>
-<div class="rtsm-card">
-    <h2><span class="dashicons dashicons-shield"></span> Auto-Remediation Thresholds
-        <span class="rtsm-hint-sm">Current load: <strong id="rtsm-thresh-current-load"><?php echo esc_html($load_1min); ?></strong></span>
-    </h2>
-
-    <div class="rtsm-thresh-grid">
-        <?php
-        // Thresholds scale with CPU core count — aligned with the load bar severity system:
-        // Elevated ≥ bar 50% (cores × 1.0), Critical ≥ bar 80% (cores × 1.6), Emergency ≥ bar 100% (cores × 2.0), Recovery < bar 25% (cores × 0.5)
-        $thresh_elevated  = round( $cpu_cores * 1.0, 1 );
-        $thresh_critical  = round( $cpu_cores * 1.6, 1 );
-        $thresh_emergency = round( $cpu_cores * 2.0, 1 );
-        $thresh_recovery  = round( $cpu_cores * 0.5, 1 );
-        $thresholds = [
-            [ 'key'=>'elevated',  'label'=>'Elevated',  'load'=>'≥ ' . $thresh_elevated,  'icon'=>'📝', 'bg'=>'#fffbeb', 'border'=>'#fde68a', 'txt'=>'#78350f', 'action'=>'Starts logging every high-load request — URL, IP, user-agent, memory — for forensic analysis. No site impact.', 'active'=> $load_1min >= $thresh_elevated && $load_1min < $thresh_critical ],
-            [ 'key'=>'critical',  'label'=>'Critical',  'load'=>'≥ ' . $thresh_critical,  'icon'=>'🛡️', 'bg'=>'#fff7ed', 'border'=>'#fdba74', 'txt'=>'#7c2d12',
-              'action' => $auto_maintenance_on
-                ? 'Auto-activates WordPress maintenance mode after 3 checks spanning 120 seconds of sustained load.'
-                : 'Incident flag and detailed logs written. Alerts and hooks fire — enable Auto-Remediation in Settings to also put the site into maintenance mode.',
-              'active'=> $load_1min >= $thresh_critical && $load_1min < $thresh_emergency ],
-            [ 'key'=>'emergency', 'label'=>'Emergency', 'load'=>'≥ ' . $thresh_emergency, 'icon'=>'🚨', 'bg'=>'#fef2f2', 'border'=>'#fca5a5', 'txt'=>'#7f1d1d',
-              'action' => $auto_maintenance_on
-                ? 'Immediate maintenance mode after 2 checks spanning 60 seconds. No extended grace period. All non-admin traffic blocked.'
-                : 'Incident flag and detailed logs written. Alerts and hooks fire — enable Auto-Remediation in Settings to also put the site into maintenance mode.',
-              'active'=> $load_1min >= $thresh_emergency ],
-            [ 'key'=>'recovery',  'label'=>'Recovery',  'load'=>'< ' . $thresh_recovery,  'icon'=>'✅', 'bg'=>'#f0fdf4', 'border'=>'#fff', 'txt'=>'#14532d',
-              'action' => $auto_maintenance_on
-                ? 'Auto-resolve: maintenance mode lifted, incident flag cleared.'
-                : 'Incident flag cleared. Logging resumes normal cadence.',
-              'active' => $load_1min < $thresh_recovery ],
-        ];
-        foreach ($thresholds as $t):
-        ?>
-        <div class="rtsm-thresh-cell <?php echo $t['active'] ? 'active' : ''; ?>" data-threshold="<?php echo esc_attr($t['key']); ?>"
-             style="--thresh-bg:<?php echo esc_attr($t['bg']); ?>;--thresh-border:<?php echo esc_attr($t['border']); ?>;">
-            <div class="thresh-icon"><?php echo $t['icon']; ?></div>
-            <div class="thresh-label" style="--thresh-txt:<?php echo esc_attr($t['txt']); ?>;"><?php echo esc_html($t['label']); ?> (<?php echo esc_html($t['load']); ?>)</div>
-            <div class="thresh-action" style="--thresh-txt:<?php echo esc_attr($t['txt']); ?>;"><?php echo esc_html($t['action']); ?></div>
-            <?php if ($t['active']): ?>
-                <div class="thresh-trigger" style="--thresh-txt:<?php echo esc_attr($t['txt']); ?>;">▲ CURRENTLY ACTIVE</div>
-            <?php endif; ?>
+<?php /* ── 3. AUTO-REMEDIATION THRESHOLDS ──────────────────────────────── */ ?>
+<?php
+// Thresholds scale with CPU core count — aligned with the load bar severity system:
+// Elevated ≥ bar 50% (cores × 1.0), Critical ≥ bar 80% (cores × 1.6), Emergency ≥ bar 100% (cores × 2.0), Recovery < bar 25% (cores × 0.5)
+$thresh_elevated  = round( $cpu_cores * 1.0, 1 );
+$thresh_critical  = round( $cpu_cores * 1.6, 1 );
+$thresh_emergency = round( $cpu_cores * 2.0, 1 );
+$thresh_recovery  = round( $cpu_cores * 0.5, 1 );
+$thresholds = [
+    [ 'key' => 'elevated',  'label' => 'Elevated',  'load' => '≥ ' . $thresh_elevated,  'icon' => '📝', 'variant' => 'warning',
+      'action' => 'Starts logging every high-load request — URL, IP, user-agent, memory — for forensic analysis. No site impact.',
+      'active' => $load_1min >= $thresh_elevated && $load_1min < $thresh_critical ],
+    [ 'key' => 'critical',  'label' => 'Critical',  'load' => '≥ ' . $thresh_critical,  'icon' => '🛡️', 'variant' => 'error inline',
+      'action' => $auto_maintenance_on
+        ? 'Auto-activates WordPress maintenance mode after 3 checks spanning 120 seconds of sustained load.'
+        : 'Incident flag and detailed logs written. Alerts and hooks fire — enable Auto-Remediation in Settings to also put the site into maintenance mode.',
+      'active' => $load_1min >= $thresh_critical && $load_1min < $thresh_emergency ],
+    [ 'key' => 'emergency', 'label' => 'Emergency', 'load' => '≥ ' . $thresh_emergency, 'icon' => '🚨', 'variant' => 'error inline',
+      'action' => $auto_maintenance_on
+        ? 'Immediate maintenance mode after 2 checks spanning 60 seconds. No extended grace period. All non-admin traffic blocked.'
+        : 'Incident flag and detailed logs written. Alerts and hooks fire — enable Auto-Remediation in Settings to also put the site into maintenance mode.',
+      'active' => $load_1min >= $thresh_emergency ],
+    [ 'key' => 'recovery',  'label' => 'Recovery',  'load' => '< ' . $thresh_recovery,  'icon' => '✅', 'variant' => 'success',
+      'action' => $auto_maintenance_on
+        ? 'Auto-resolve: maintenance mode lifted, incident flag cleared.'
+        : 'Incident flag cleared. Logging resumes normal cadence.',
+      'active' => $load_1min < $thresh_recovery ],
+];
+?>
+<div class="mmi-process-section">
+    <?php echo RTSM_UI_Helpers::section_header(
+        'shield',
+        'Auto-Remediation Thresholds',
+        'What RTSM does at each load level. The level the server is in now is marked.',
+        '',
+        '<span class="mmi-text-muted">Current load: <strong id="rtsm-thresh-current-load">' . esc_html( $load_1min ) . '</strong></span>'
+    ); ?>
+    <div class="mmi-section-content">
+        <div class="mmi-grid-4">
+            <?php foreach ( $thresholds as $t ) : ?>
+                <div class="mmi-info-card rtsm-threshold <?php echo esc_attr( $t['variant'] ); ?><?php echo $t['active'] ? ' is-active' : ''; ?>" data-threshold="<?php echo esc_attr( $t['key'] ); ?>">
+                    <h3><?php echo $t['icon']; ?> <?php echo esc_html( $t['label'] ); ?> (<?php echo esc_html( $t['load'] ); ?>)</h3>
+                    <p><?php echo esc_html( $t['action'] ); ?></p>
+                    <span class="mmi-badge rtsm-threshold-active"<?php echo $t['active'] ? '' : ' hidden'; ?>>▲ Currently active</span>
+                </div>
+            <?php endforeach; ?>
         </div>
-        <?php endforeach; ?>
+        <p class="mmi-hint-text">
+            <strong>What is load average?</strong> It represents the average number of processes <em>waiting</em> for CPU time over 1, 5, and 15-minute windows. On this <?php echo esc_html( $cpu_cores ); ?>-core server, a load of <strong><?php echo esc_html( $cpu_cores ); ?>.0</strong> means 100% utilisation — every core is busy with no queue. A load of <strong><?php echo esc_html( $cpu_cores * 2 ); ?>.0</strong> means cores are 200% subscribed and requests are visibly queuing.
+        </p>
     </div>
-
-    <p class="rtsm-hint-top-lg">
-        <strong>What is load average?</strong> It represents the average number of processes <em>waiting</em> for CPU time over 1, 5, and 15-minute windows. On this <?php echo esc_html($cpu_cores); ?>-core server, a load of <strong><?php echo esc_html($cpu_cores); ?>.0</strong> means 100% utilisation — every core is busy with no queue. A load of <strong><?php echo esc_html($cpu_cores * 2); ?>.0</strong> means cores are 200% subscribed and requests are visibly queuing.
-    </p>
 </div>
 
-<?php /* ── 5. RECENT ALERTS ──────────────────────────────────────────────── */ ?>
-<?php if ( ! empty($parsed_alerts) ): ?>
-<div class="rtsm-card">
-    <h2><span class="dashicons dashicons-bell"></span> Recent Alerts
-        <span class="rtsm-hint-sm">Last <?php echo esc_html(count($parsed_alerts)); ?> events · newest first</span>
-    </h2>
-
-    <div class="rtsm-overflow-x">
-    <table class="rtsm-alerts-table">
-        <thead>
-            <tr>
-                <th>Time (UTC)</th>
-                <th>Status</th>
-                <th>Load</th>
-                <th>PHP Workers</th>
-                <th>Memory</th>
-                <th>URL</th>
-                <th>IP</th>
-                <th>Notes</th>
-            </tr>
-        </thead>
-        <tbody>
-        <?php foreach ($parsed_alerts as $a):
-            $load_f = (float) $a['load'];
-            $load_class = $load_f >= 20 ? 'load-high' : ($load_f >= 5 ? 'load-mid' : '');
-        ?>
-            <tr>
-                <td class="ts"><?php echo esc_html($a['ts']); ?></td>
-                <td><?php echo rtsm_severity_badge($a['severity']); ?></td>
-                <td class="<?php echo esc_attr($load_class); ?>"><?php echo esc_html($a['load']); ?></td>
-                <td><?php echo esc_html($a['php_procs']); ?></td>
-                <td><?php
-                    $mp = (float) preg_replace('/[^0-9.]/', '', $a['memory']);
-                    echo esc_html(number_format($mp, 1)) . '%';
-                ?></td>
-                <td class="url-cell" title="<?php echo esc_attr($a['url']); ?>"><?php echo esc_html($a['url'] ?: '—'); ?></td>
-                <td><code class="rtsm-code-xs"><?php echo esc_html($a['ip'] ?: '—'); ?></code></td>
-                <td>
-                    <?php if ($a['suppressed']): ?>
-                        <span class="rtsm-dev-suppressed">Dev tools (maintenance suppressed)</span>
-                    <?php elseif ($a['cause']): ?>
-                        <span class="rtsm-text-xs-mid"><?php
-                            $cause = $a['cause'];
-                            // Trim "(X.X%)" suffix from process names
-                            $cause = preg_replace('/\s*\([\d.]+%\)/', '', $cause);
-                            echo esc_html($cause);
-                        ?></span>
-                    <?php elseif ($a['dev_cpu']): ?>
-                        <span class="rtsm-text-xs-hint">Dev <?php echo esc_html($a['dev_cpu']); ?> / Web <?php echo esc_html($a['web_cpu']); ?></span>
-                    <?php else: ?>
-                        <span class="rtsm-text-disabled">—</span>
-                    <?php endif; ?>
-                </td>
-            </tr>
-        <?php endforeach; ?>
-        </tbody>
-    </table>
+<?php /* ── 4. RECENT ALERTS ──────────────────────────────────────────────── */ ?>
+<?php if ( ! empty( $parsed_alerts ) || file_exists( $alert_file ) ) : ?>
+<div class="mmi-process-section">
+    <?php echo RTSM_UI_Helpers::section_header(
+        'bell',
+        'Recent Alerts',
+        ! empty( $parsed_alerts ) ? 'Last ' . count( $parsed_alerts ) . ' structured alert events, newest first.' : 'Structured alert events from the alert log.'
+    ); ?>
+    <div class="mmi-section-content">
+    <?php if ( ! empty( $parsed_alerts ) ) : ?>
+        <div class="mmi-table-scroll-wrapper">
+            <table class="mmi-uniform-table mmi-uniform-table--hoverable">
+                <thead>
+                    <tr>
+                        <th>Time (UTC)</th>
+                        <th>Status</th>
+                        <th>Load</th>
+                        <th>PHP Workers</th>
+                        <th>Memory</th>
+                        <th>URL</th>
+                        <th>IP</th>
+                        <th>Notes</th>
+                    </tr>
+                </thead>
+                <tbody>
+                <?php foreach ( $parsed_alerts as $a ) :
+                    $load_f     = (float) $a['load'];
+                    $load_class = $load_f >= 20 ? 'mmi-text-error' : ( $load_f >= 5 ? 'mmi-text-warning' : '' );
+                ?>
+                    <tr>
+                        <td class="rtsm-nowrap"><?php echo esc_html( $a['ts'] ); ?></td>
+                        <td><?php echo RTSM_UI_Helpers::severity_badge( $a['severity'] ); ?></td>
+                        <td class="<?php echo esc_attr( $load_class ); ?>"><?php echo esc_html( $a['load'] ); ?></td>
+                        <td><?php echo esc_html( $a['php_procs'] ); ?></td>
+                        <td><?php
+                            $mp = (float) preg_replace( '/[^0-9.]/', '', $a['memory'] );
+                            echo esc_html( number_format( $mp, 1 ) ) . '%';
+                        ?></td>
+                        <td class="rtsm-truncate" title="<?php echo esc_attr( $a['url'] ); ?>"><?php echo esc_html( $a['url'] ?: '—' ); ?></td>
+                        <td><code><?php echo esc_html( $a['ip'] ?: '—' ); ?></code></td>
+                        <td class="mmi-text-muted">
+                            <?php if ( $a['suppressed'] ) : ?>
+                                <span class="mmi-badge info">Dev tools (maintenance suppressed)</span>
+                            <?php elseif ( $a['cause'] ) : ?>
+                                <?php echo esc_html( preg_replace( '/\s*\([\d.]+%\)/', '', $a['cause'] ) ); // Trim "(X.X%)" suffix from process names ?>
+                            <?php elseif ( $a['dev_cpu'] ) : ?>
+                                Dev <?php echo esc_html( $a['dev_cpu'] ); ?> / Web <?php echo esc_html( $a['web_cpu'] ); ?>
+                            <?php else : ?>
+                                —
+                            <?php endif; ?>
+                        </td>
+                    </tr>
+                <?php endforeach; ?>
+                </tbody>
+            </table>
+        </div>
+        <p class="mmi-hint-text">
+            <strong>Tip:</strong> A cluster of the same IP across multiple log entries with no referer and a scraper user-agent = bot attack. Block it at Cloudflare. Lines marked "Dev tools" are caused by VS Code running locally and are automatically excluded from auto-remediation triggers.
+        </p>
+    <?php else : ?>
+        <p class="mmi-text-muted">Alert log exists but contains no parseable structured entries yet. New alerts are written on every request when load is being monitored.</p>
+    <?php endif; ?>
     </div>
-
-    <p class="rtsm-hint-top">
-        <strong>Tip:</strong> A cluster of the same IP across multiple log entries with no referer and a scraper user-agent = bot attack. Block it at Cloudflare above. Lines marked "Dev tools" are caused by VS Code running locally and are automatically excluded from auto-remediation triggers.
-    </p>
-</div>
-<?php elseif ( file_exists($alert_file) ): ?>
-<div class="rtsm-card">
-    <h2><span class="dashicons dashicons-bell"></span> Recent Alerts</h2>
-    <p class="rtsm-text-muted">Alert log exists but contains no parseable structured entries yet. New alerts are written on every request when load is being monitored.</p>
 </div>
 <?php endif; ?>
 
-<?php /* ── 6. HISTORICAL INCIDENT ANALYSIS ─────────────────────────────── */ ?>
-<div class="rtsm-card">
-    <h2><span class="dashicons dashicons-chart-line"></span> Historical Incident Analysis</h2>
-
-    <?php if ( $stats['total_incidents'] === 0 ): ?>
-        <p class="rtsm-text-muted"><strong>No high-load incidents recorded yet.</strong> Data appears here once the load exceeds 5.0 for the first time.</p>
-    <?php else: ?>
-        <div class="rtsm-hist-grid">
-            <div class="rtsm-hist-cell">
-                <div class="big" class="rtsm-text-red"><?php echo esc_html(number_format($stats['total_incidents'])); ?></div>
-                <div class="lbl">Logged Incidents</div>
-            </div>
-            <div class="rtsm-hist-cell">
-                <div class="big" class="rtsm-text-amber"><?php echo esc_html(number_format($stats['max_load'], 2)); ?></div>
-                <div class="lbl">Peak Load Recorded</div>
-            </div>
-            <div class="rtsm-hist-cell">
-                <div class="big" class="rtsm-text-blue"><?php echo esc_html(number_format($stats['avg_load'], 2)); ?></div>
-                <div class="lbl">Average Load During Incidents</div>
-            </div>
+<?php /* ── 5. HISTORICAL INCIDENT ANALYSIS ─────────────────────────────── */ ?>
+<div class="mmi-process-section">
+    <?php echo RTSM_UI_Helpers::section_header( 'chart-line', 'Historical Incident Analysis', 'Totals from the traffic log: what triggered entries, and who and what was hit hardest.' ); ?>
+    <div class="mmi-section-content">
+    <?php if ( $stats['total_incidents'] === 0 ) : ?>
+        <p class="mmi-text-muted"><strong>No high-load incidents recorded yet.</strong> Data appears here once the load exceeds 5.0 for the first time.</p>
+    <?php else : ?>
+        <div class="mmi-stats-grid">
+            <?php
+            echo RTSM_UI_Helpers::render_stat_box( [ 'label' => 'Logged Incidents', 'value' => esc_html( number_format( $stats['total_incidents'] ) ), 'variant' => 'error' ] );
+            echo RTSM_UI_Helpers::render_stat_box( [ 'label' => 'Peak Load Recorded', 'value' => esc_html( number_format( $stats['max_load'], 2 ) ), 'variant' => 'warning' ] );
+            echo RTSM_UI_Helpers::render_stat_box( [ 'label' => 'Average Load During Incidents', 'value' => esc_html( number_format( $stats['avg_load'], 2 ) ), 'variant' => 'info' ] );
+            ?>
         </div>
 
-        <div class="rtsm-panels">
+        <div class="mmi-grid-2">
             <div>
-                <h3>📋 Incident Types
-                    <span class="rtsm-hint-xs">What triggered each log entry</span>
-                </h3>
-                <?php if (!empty($stats['by_type'])): ?>
-                <table class="rtsm-mini-table">
+                <?php if ( ! empty( $stats['by_type'] ) ) : ?>
+                <h4>📋 Incident Types <span class="mmi-hint-text rtsm-inline-hint">What triggered each log entry</span></h4>
+                <div class="mmi-table-scroll-wrapper">
+                <table class="mmi-uniform-table mmi-uniform-table--hoverable">
                     <thead><tr><th>Type</th><th>Count</th><th>%</th><th>What it means</th></tr></thead>
                     <tbody>
                     <?php
@@ -448,133 +407,139 @@ $workers_color_cls = $php_workers >= 30                ? 'rtsm-color-crit' : ( $
                         'SNAPSHOT' => 'Periodic 1-minute background health snapshot',
                         'CRITICAL' => 'Load hit the emergency auto-remediation threshold',
                     ];
-                    foreach ($stats['by_type'] as $type => $count): ?>
+                    foreach ( $stats['by_type'] as $type => $count ) : ?>
                         <tr>
-                            <td><strong><?php echo esc_html($type); ?></strong></td>
-                            <td><?php echo esc_html(number_format($count)); ?></td>
-                            <td><?php echo esc_html(round(($count / $stats['total_incidents']) * 100, 1)); ?>%</td>
-                            <td class="rtsm-text-xs-hint"><?php echo esc_html($type_hints[$type] ?? ''); ?></td>
+                            <td><strong><?php echo esc_html( $type ); ?></strong></td>
+                            <td><?php echo esc_html( number_format( $count ) ); ?></td>
+                            <td><?php echo esc_html( round( ( $count / $stats['total_incidents'] ) * 100, 1 ) ); ?>%</td>
+                            <td class="mmi-text-muted"><?php echo esc_html( $type_hints[ $type ] ?? '' ); ?></td>
                         </tr>
                     <?php endforeach; ?>
                     </tbody>
                 </table>
+                </div>
                 <?php endif; ?>
 
-                <?php if (!empty($stats['by_request_type'])): ?>
-                <h3 class="rtsm-mt-16">🌐 Request Types <span class="rtsm-hint-xs">during incidents</span></h3>
-                <table class="rtsm-mini-table">
+                <?php if ( ! empty( $stats['by_request_type'] ) ) : ?>
+                <h4>🌐 Request Types <span class="mmi-hint-text rtsm-inline-hint">during incidents</span></h4>
+                <div class="mmi-table-scroll-wrapper">
+                <table class="mmi-uniform-table mmi-uniform-table--hoverable">
                     <thead><tr><th>Type</th><th>Count</th><th>%</th></tr></thead>
                     <tbody>
-                    <?php foreach ($stats['by_request_type'] as $rtype => $count): ?>
+                    <?php foreach ( $stats['by_request_type'] as $rtype => $count ) : ?>
                         <tr>
-                            <td><?php echo esc_html($rtype); ?></td>
-                            <td><?php echo esc_html(number_format($count)); ?></td>
-                            <td><?php echo esc_html(round(($count / $stats['total_incidents']) * 100, 1)); ?>%</td>
+                            <td><?php echo esc_html( $rtype ); ?></td>
+                            <td><?php echo esc_html( number_format( $count ) ); ?></td>
+                            <td><?php echo esc_html( round( ( $count / $stats['total_incidents'] ) * 100, 1 ) ); ?>%</td>
                         </tr>
                     <?php endforeach; ?>
                     </tbody>
                 </table>
+                </div>
                 <?php endif; ?>
             </div>
 
             <div>
-                <h3>🚫 Top High-Load IPs
-                    <span class="rtsm-hint-xs">IPs seen most during incidents</span>
-                </h3>
-                <?php if (!empty($stats['top_ips'])): ?>
-                <table class="rtsm-mini-table">
+                <h4>🚫 Top High-Load IPs <span class="mmi-hint-text rtsm-inline-hint">IPs seen most during incidents</span></h4>
+                <?php if ( ! empty( $stats['top_ips'] ) ) : ?>
+                <div class="mmi-table-scroll-wrapper">
+                <table class="mmi-uniform-table mmi-uniform-table--hoverable">
                     <thead><tr><th>IP Address</th><th>Hits</th><th>Action</th></tr></thead>
                     <tbody>
-                    <?php foreach (array_slice($stats['top_ips'], 0, 10) as $ip => $count):
-                        $cf_block_url = 'https://dash.cloudflare.com/?to=/:account/:zone/security/waf/tools/ip-access-rules';
-                    ?>
+                    <?php
+                    $cf_block_url = 'https://dash.cloudflare.com/?to=/:account/:zone/security/waf/tools/ip-access-rules';
+                    foreach ( array_slice( $stats['top_ips'], 0, 10 ) as $ip => $count ) : ?>
                         <tr>
-                            <td><code class="rtsm-code-xs"><?php echo esc_html($ip); ?></code></td>
-                            <td><?php echo esc_html(number_format($count)); ?></td>
-                            <td><a href="<?php echo esc_url($cf_block_url); ?>" target="_blank" class="rtsm-cell-xs-nowrap">Block in CF →</a></td>
+                            <td><code><?php echo esc_html( $ip ); ?></code></td>
+                            <td><?php echo esc_html( number_format( $count ) ); ?></td>
+                            <td class="rtsm-nowrap"><a href="<?php echo esc_url( $cf_block_url ); ?>" target="_blank" rel="noopener">Block in Cloudflare →</a></td>
                         </tr>
                     <?php endforeach; ?>
                     </tbody>
                 </table>
-                <?php else: ?>
-                    <p class="rtsm-hint-sm-bare">No IP data in traffic log yet.</p>
+                </div>
+                <?php else : ?>
+                    <p class="mmi-text-muted">No IP data in traffic log yet.</p>
                 <?php endif; ?>
 
-                <?php if (!empty($stats['top_urls'])): ?>
-                <h3 class="rtsm-mt-16">🔗 Top High-Load URLs</h3>
-                <table class="rtsm-mini-table">
+                <?php if ( ! empty( $stats['top_urls'] ) ) : ?>
+                <h4>🔗 Top High-Load URLs</h4>
+                <div class="mmi-table-scroll-wrapper">
+                <table class="mmi-uniform-table mmi-uniform-table--hoverable">
                     <thead><tr><th>URL</th><th>Hits</th></tr></thead>
                     <tbody>
-                    <?php foreach (array_slice($stats['top_urls'], 0, 10) as $url => $count): ?>
+                    <?php foreach ( array_slice( $stats['top_urls'], 0, 10 ) as $url => $count ) : ?>
                         <tr>
-                            <td class="url-cell" class="rtsm-url-cell" title="<?php echo esc_attr($url); ?>"><?php echo esc_html($url); ?></td>
-                            <td><?php echo esc_html(number_format($count)); ?></td>
+                            <td class="rtsm-truncate" title="<?php echo esc_attr( $url ); ?>"><?php echo esc_html( $url ); ?></td>
+                            <td><?php echo esc_html( number_format( $count ) ); ?></td>
                         </tr>
                     <?php endforeach; ?>
                     </tbody>
                 </table>
+                </div>
                 <?php endif; ?>
 
-                <?php if (!empty($stats['suspicious_flags'])): ?>
-                <h3 class="rtsm-mt-16">🏴 Suspicious Flags</h3>
-                <p class="rtsm-label-sm">Patterns detected on requests logged during incidents:</p>
-                <table class="rtsm-mini-table">
+                <?php if ( ! empty( $stats['suspicious_flags'] ) ) : ?>
+                <h4>🏴 Suspicious Flags <span class="mmi-hint-text rtsm-inline-hint">Patterns detected on requests logged during incidents</span></h4>
+                <div class="mmi-table-scroll-wrapper">
+                <table class="mmi-uniform-table mmi-uniform-table--hoverable">
                     <thead><tr><th>Flag</th><th>Count</th><th>What it means</th></tr></thead>
                     <tbody>
                     <?php
                     $flag_hints = [
-                        'BOT_USER_AGENT'   => 'User-agent string contained "bot" — likely a crawler',
-                        'NO_REFERER'       => 'No HTTP referer — common for direct bot requests',
-                        'SLOW_REQUEST'     => 'Request took > 2 s to process — heavy DB query or blocking I/O',
-                        'SUSPICIOUS_PATH'  => 'URL contained ".." or "wp-config" — potential exploit scan',
+                        'BOT_USER_AGENT'  => 'User-agent string contained "bot" — likely a crawler',
+                        'NO_REFERER'      => 'No HTTP referer — common for direct bot requests',
+                        'SLOW_REQUEST'    => 'Request took > 2 s to process — heavy DB query or blocking I/O',
+                        'SUSPICIOUS_PATH' => 'URL contained ".." or "wp-config" — potential exploit scan',
                     ];
-                    foreach ($stats['suspicious_flags'] as $flag => $count): ?>
+                    foreach ( $stats['suspicious_flags'] as $flag => $count ) : ?>
                         <tr>
-                            <td><code class="rtsm-code-xs"><?php echo esc_html($flag); ?></code></td>
-                            <td><?php echo esc_html(number_format($count)); ?></td>
-                            <td class="rtsm-text-xs-hint"><?php echo esc_html($flag_hints[$flag] ?? ''); ?></td>
+                            <td><code><?php echo esc_html( $flag ); ?></code></td>
+                            <td><?php echo esc_html( number_format( $count ) ); ?></td>
+                            <td class="mmi-text-muted"><?php echo esc_html( $flag_hints[ $flag ] ?? '' ); ?></td>
                         </tr>
                     <?php endforeach; ?>
                     </tbody>
                 </table>
+                </div>
                 <?php endif; ?>
             </div>
         </div>
     <?php endif; ?>
+    </div>
 </div>
 
-<?php /* ── 7. LOG FILE MANAGEMENT ───────────────────────────────────────── */ ?>
-<div class="rtsm-card">
-    <h2><span class="dashicons dashicons-media-document"></span> Log File Management</h2>
-    <div class="rtsm-log-grid">
-        <div class="rtsm-log-section">
-            <p><strong>Traffic Log</strong></p>
-            <p class="rtsm-break-all"><code class="rtsm-code-xs"><?php echo esc_html($log_file); ?></code></p>
-            <p><strong>Status:</strong> <?php echo $log_exists ? '✅ Active' : '❌ No data yet'; ?></p>
-            <?php if ($log_exists): ?>
-                <p><strong>Size:</strong> <?php echo esc_html(size_format(filesize($log_file))); ?></p>
-                <div class="rtsm-action-row">
-                    <button type="button" class="button button-secondary mmi-action-btn" id="download-traffic-log"><span class="dashicons dashicons-download"></span> Download</button>
-                    <button type="button" class="button button-secondary mmi-action-btn" id="clear-traffic-log"><span class="dashicons dashicons-trash"></span> Clear</button>
-                </div>
-            <?php endif; ?>
-            <p class="rtsm-file-hint">Records every request during elevated load: URL, IP, user-agent, response time, memory, suspicious flags.</p>
-        </div>
-        <div class="rtsm-log-section">
-            <p><strong>Alert Log</strong></p>
-            <p class="rtsm-break-all"><code class="rtsm-code-xs"><?php echo esc_html($alert_file); ?></code></p>
-            <p><strong>Status:</strong> <?php echo file_exists($alert_file) ? '✅ Active' : '❌ No data yet'; ?></p>
-            <?php if (file_exists($alert_file)): ?>
-                <p><strong>Size:</strong> <?php echo esc_html(size_format(filesize($alert_file))); ?></p>
-                <div class="rtsm-action-row">
-                    <button type="button" class="button button-secondary mmi-action-btn" id="download-alert-log"><span class="dashicons dashicons-download"></span> Download</button>
-                    <button type="button" class="button button-secondary mmi-action-btn" id="clear-alert-log"><span class="dashicons dashicons-trash"></span> Clear</button>
-                </div>
-            <?php endif; ?>
-            <p class="rtsm-file-hint">Written on every request (not just high load) — one line per request with load, memory, PHP workers. Rotated at 5 MB.</p>
+<?php /* ── 6. LOG FILE MANAGEMENT ───────────────────────────────────────── */ ?>
+<div class="mmi-process-section">
+    <?php echo RTSM_UI_Helpers::section_header( 'media-document', 'Log File Management', 'Download or clear the two RTSM log files.' ); ?>
+    <div class="mmi-section-content">
+        <div class="mmi-grid-2">
+            <div class="mmi-widget">
+                <h3>Traffic Log <?php echo $log_exists ? '<span class="mmi-badge success">Active</span>' : '<span class="mmi-badge">No data yet</span>'; ?></h3>
+                <p><code class="rtsm-break-all"><?php echo esc_html( $log_file ); ?></code></p>
+                <?php if ( $log_exists ) : ?>
+                    <p><strong>Size:</strong> <?php echo esc_html( size_format( filesize( $log_file ) ) ); ?></p>
+                    <div class="mmi-toolbar">
+                        <button type="button" class="button button-secondary" id="download-traffic-log" data-rtsm-log="traffic" data-rtsm-log-action="download"><span class="dashicons dashicons-download"></span> Download</button>
+                        <button type="button" class="button button-secondary" id="clear-traffic-log" data-rtsm-log="traffic" data-rtsm-log-action="clear"><span class="dashicons dashicons-trash"></span> Clear</button>
+                    </div>
+                <?php endif; ?>
+                <p class="mmi-hint-text">Records every request during elevated load: URL, IP, user-agent, response time, memory, suspicious flags.</p>
+            </div>
+            <div class="mmi-widget">
+                <h3>Alert Log <?php echo file_exists( $alert_file ) ? '<span class="mmi-badge success">Active</span>' : '<span class="mmi-badge">No data yet</span>'; ?></h3>
+                <p><code class="rtsm-break-all"><?php echo esc_html( $alert_file ); ?></code></p>
+                <?php if ( file_exists( $alert_file ) ) : ?>
+                    <p><strong>Size:</strong> <?php echo esc_html( size_format( filesize( $alert_file ) ) ); ?></p>
+                    <div class="mmi-toolbar">
+                        <button type="button" class="button button-secondary" id="download-alert-log" data-rtsm-log="alert" data-rtsm-log-action="download"><span class="dashicons dashicons-download"></span> Download</button>
+                        <button type="button" class="button button-secondary" id="clear-alert-log" data-rtsm-log="alert" data-rtsm-log-action="clear"><span class="dashicons dashicons-trash"></span> Clear</button>
+                    </div>
+                <?php endif; ?>
+                <p class="mmi-hint-text">Written on every request (not just high load) — one line per request with load, memory, PHP workers. Rotated at 5 MB.</p>
+            </div>
         </div>
     </div>
 </div>
 
-</div><!-- .rtsm-traffic-wrap -->
-
+</div><!-- #rtsm-traffic-wrap -->

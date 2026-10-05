@@ -22,7 +22,7 @@
     /* ── Messages ──────────────────────────────────────────────────────── */
     const MESSAGES = {
         configError: 'Configuration error. Please refresh the page.',
-        loadingTab:  '<div class="mmi-tab-loading"><span class="spinner is-active rtsm-spinner-center"></span><p class="rtsm-tab-loading-msg">Loading %tab%...</p></div>',
+        loadingTab:  '<div class="mmi-process-section"><p class="mmi-text-muted"><span class="mmi-loading"></span> Loading %tab%…</p></div>',
         loadFailed:  'Failed to load tab content: %error%',
         ajaxFailed:  'Error loading tab content: %error%',
     };
@@ -75,7 +75,7 @@
      */
     function loadTabContent(tabName, $pane) {
         if (!window.rtsmAdmin || !window.rtsmAdmin.nonce) {
-            $pane.html(`<div class="notice notice-error"><p>${MESSAGES.configError}</p></div>`);
+            $pane.html(`<div class="notice notice-error inline"><p>${MESSAGES.configError}</p></div>`);
             return;
         }
 
@@ -97,11 +97,11 @@
                     $(document).trigger('rtsm_tab_loaded', [tabName]);
                 } else {
                     const errorMsg = response.data || 'Unknown error';
-                    $pane.html(`<div class="notice notice-error"><p>${MESSAGES.loadFailed.replace('%error%', errorMsg)}</p></div>`);
+                    $pane.html(`<div class="notice notice-error inline"><p>${MESSAGES.loadFailed.replace('%error%', errorMsg)}</p></div>`);
                 }
             },
             error: function(xhr, status, error) {
-                $pane.html(`<div class="notice notice-error"><p>${MESSAGES.ajaxFailed.replace('%error%', error)}</p></div>`);
+                $pane.html(`<div class="notice notice-error inline"><p>${MESSAGES.ajaxFailed.replace('%error%', error)}</p></div>`);
             }
         });
     }
