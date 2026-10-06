@@ -5,7 +5,7 @@
  * Styles and JavaScript are now loaded from external files.
  * Assets and localization handled in class-server-monitor.php
  * 
- * @package MMI_Cloudflare_Protection
+ * @package MMI_RTSM
  * @since 2.1.1
  */
 

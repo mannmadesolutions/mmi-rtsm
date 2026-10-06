@@ -50,16 +50,11 @@ $active_incident = $active_incident ?? [];
     <?php
     /* ── Cause summary captured at incident start ───────────── */
     $inc_causes = $active_incident['causes'] ?? [];
-    $inc_cf     = $inc_causes['cf']          ?? [];
     $inc_thr    = $inc_causes['throttler']   ?? [];
     $inc_attr   = $inc_causes['attribution'] ?? [];
     $inc_cron   = $inc_causes['wpcron']      ?? [];
 
     $cause_lines = [];
-    if (!empty($inc_cf['active'])) {
-        $label = $inc_cf['auto_escalated'] ? 'CF Under Attack (auto-escalated by RTSM)' : 'CF Under Attack (manual)';
-        $cause_lines[] = '<span class="dashicons dashicons-shield-alt"></span> ' . esc_html($label);
-    }
     if (!empty($inc_thr['active'])) {
         $cause_lines[] = '<span class="dashicons dashicons-controls-pause"></span> '
             . esc_html($inc_thr['running_count']) . ' background process(es) running, '

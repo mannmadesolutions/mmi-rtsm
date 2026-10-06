@@ -138,7 +138,7 @@ class RTSM_Traffic_Logger {
         $this->generate_alert($load_1min, $this->get_severity_level($load_1min), $attribution);
         
         // Dev-tool attribution suppresses .maintenance file creation, but NEVER suppresses
-        // Cloudflare escalation or incident logging — a dev session cannot justify load 5+
+        // the escalation hooks or incident logging — a dev session cannot justify load 5+
         // affecting real visitors.  suppress_maintenance only gates the .maintenance file.
         $suppress_maintenance_only = $attribution['suppress_maintenance'];
         
@@ -411,7 +411,7 @@ class RTSM_Traffic_Logger {
      * Instead, the counter naturally expires (10-min transient TTL) if load stays low.
      */
     private function should_activate_on_critical_load($load, $is_bot = false) {
-        // Bot traffic + critical load is EXACTLY the scenario CF Under Attack Mode is for.
+        // Bot traffic + critical load is exactly the scenario escalation is for.
         // Previously this suppressed escalation when is_bot=true — that is backwards.
         // Now we ACCELERATE: bots get a shorter grace period (2 checks / 30 s).
         $min_checks  = $is_bot ? 2 : $this->minimum_activations_needed;
@@ -447,6 +447,36 @@ class RTSM_Traffic_Logger {
         return $checks >= $min_checks && $elapsed >= $min_elapsed;
     }
     
+    /**
+     * Name of the search or social crawler a user agent claims to be, or ''.
+     *
+     * Blocking one of these breaks search indexing or link previews, so the
+     * Traffic tab warns instead of offering a block link. Matched on the name's
+     * start because the traffic log truncates user agents. A user agent can be
+     * spoofed, so the warning says "check before blocking", not "safe".
+     *
+     * @param string $user_agent
+     * @return string
+     */
+    public static function known_crawler( $user_agent ) {
+        $crawlers = [
+            'meta-extern'         => 'Meta',
+            'facebookexternalhit' => 'Meta',
+            'googlebot'           => 'Google',
+            'google-inspection'   => 'Google',
+            'bingbot'             => 'Bing',
+            'applebot'            => 'Apple',
+            'duckduckbot'         => 'DuckDuckGo',
+        ];
+        $user_agent = strtolower( (string) $user_agent );
+        foreach ( $crawlers as $needle => $name ) {
+            if ( strpos( $user_agent, $needle ) !== false ) {
+                return $name;
+            }
+        }
+        return '';
+    }
+
     /**
      * Detect if traffic is from bots/crawlers
      */
@@ -534,7 +564,7 @@ class RTSM_Traffic_Logger {
         // NOTE: Do NOT throttle this at load 5.0 — the whole point is that this check
         // fires independently of incoming web requests (via WP-Cron or system cron).
         // When background processes drive high load with low web traffic, this is the
-        // ONLY code path that can fire the CF escalation hook.
+        // ONLY code path that can fire the escalation hooks.
         
         $load = $this->collector->get_load_average();
         $load_1min = $load['1min'];
@@ -936,9 +966,14 @@ class RTSM_Traffic_Logger {
     }
     
     /**
-     * Get analysis summary
-     */
-    /**
+     * Summarise the traffic log.
+     *
+     * The log holds a SNAPSHOT line every minute whatever the load, so a line
+     * count is not an incident count. 'total_incidents' counts INCIDENT_START
+     * lines; 'avg_load' averages only the load samples taken while an incident
+     * was open; 'total_entries' is every line, and 'event_entries' every line
+     * that isn't a routine snapshot.
+     *
      * @param string|null $since Site-local 'Y-m-d H:i:s'. Only log lines stamped at or after it
      *                           are counted; null counts the whole log.
      */
@@ -948,14 +983,17 @@ class RTSM_Traffic_Logger {
         if (!file_exists($log_file)) {
             return [
                 'total_incidents' => 0,
+                'total_entries'   => 0,
+                'event_entries'   => 0,
                 'message' => 'No high-load incidents recorded yet.'
             ];
         }
 
         // Cache key incorporates the file's last-modified time so a new incident
-        // automatically busts the cache without waiting for TTL expiry.
+        // automatically busts the cache without waiting for TTL expiry. The "v2"
+        // segment retires summaries cached before incidents were counted properly.
         $mtime     = (int) filemtime( $log_file );
-        $cache_key = 'rtsm_analysis_summary_' . $mtime . ( $since ? '_' . md5( substr( $since, 0, 16 ) ) : '' );
+        $cache_key = 'rtsm_analysis_summary_v2_' . $mtime . ( $since ? '_' . md5( substr( $since, 0, 16 ) ) : '' );
 
         $cached = get_transient( $cache_key );
         if ( $cached !== false ) {
@@ -967,37 +1005,61 @@ class RTSM_Traffic_Logger {
         
         $stats = [
             'total_incidents' => 0,
+            'total_entries' => 0,
+            'event_entries' => 0,
             'by_type' => [],
             'by_request_type' => [],
             'top_urls' => [],
             'top_ips' => [],
+            'ip_crawlers' => [],
             'suspicious_flags' => [],
             'max_load' => 0,
             'avg_load' => 0,
             'peak_times' => [],
         ];
         
-        $total_load = 0;
-        
+        $incident_load    = 0;
+        $incident_samples = 0;
+        $in_incident      = false;
+
         foreach ($lines as $line) {
             if (empty($line)) continue;
+
+            $type = preg_match( '/Type: (\w+)/', $line, $match ) ? $match[1] : '';
+
+            // Track whether an incident is open on every line, including lines
+            // before $since, so a window that starts mid-incident still counts
+            // its samples as incident load.
+            $was_in_incident = $in_incident;
+            if ( $type === 'INCIDENT_START' ) {
+                $in_incident = true;
+            } elseif ( $type === 'INCIDENT_RESOLVED' ) {
+                $in_incident = false;
+            }
 
             if ( $since !== null && preg_match( '/^\[(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2})\]/', $line, $ts ) && $ts[1] < $since ) {
                 continue;
             }
 
-            $stats['total_incidents']++;
-            
+            $stats['total_entries']++;
+            if ( $type !== 'SNAPSHOT' ) {
+                $stats['event_entries']++;
+            }
+            if ( $type === 'INCIDENT_START' ) {
+                $stats['total_incidents']++;
+            }
+
             // Parse load
             if (preg_match('/Load: ([\d.]+)/', $line, $match)) {
                 $load = floatval($match[1]);
-                $total_load += $load;
                 $stats['max_load'] = max($stats['max_load'], $load);
+                if ( $in_incident || $was_in_incident ) {
+                    $incident_load += $load;
+                    $incident_samples++;
+                }
             }
-            
-            // Parse type
-            if (preg_match('/Type: (\w+)/', $line, $match)) {
-                $type = $match[1];
+
+            if ( $type !== '' ) {
                 $stats['by_type'][$type] = ($stats['by_type'][$type] ?? 0) + 1;
             }
             
@@ -1020,6 +1082,13 @@ class RTSM_Traffic_Logger {
                 $ip = trim($match[1]);
                 if (!empty($ip) && $ip !== 'unknown') {
                     $stats['top_ips'][$ip] = ($stats['top_ips'][$ip] ?? 0) + 1;
+
+                    if ( preg_match( '/User agent: ([^\|]+)/', $line, $ua_match ) ) {
+                        $crawler = self::known_crawler( $ua_match[1] );
+                        if ( $crawler !== '' ) {
+                            $stats['ip_crawlers'][ $ip ] = $crawler;
+                        }
+                    }
                 }
             }
             
@@ -1040,8 +1109,8 @@ class RTSM_Traffic_Logger {
             }
         }
         
-        if ($stats['total_incidents'] > 0) {
-            $stats['avg_load'] = round($total_load / $stats['total_incidents'], 2);
+        if ( $incident_samples > 0 ) {
+            $stats['avg_load'] = round( $incident_load / $incident_samples, 2 );
         }
         
         // Sort arrays
@@ -1071,24 +1140,22 @@ class RTSM_Traffic_Logger {
      *
      * Escalation chain:
      *   1. Creates ABSPATH/.maintenance  (WordPress shows built-in maintenance page)
-     *   2. Fires rtsm_emergency_mode_activated hook (for any listener; none in
-     *      this suite since mmi-cloudflare-integration was retired 2026-10-04)
+     *   2. Fires rtsm_emergency_mode_activated hook (for any listener)
      *
      * NOTE: .maintenance creation is gated on the 'rtsm_auto_maintenance' setting
      * (default OFF). Incident logging and hook firing always occur regardless,
-     * so Cloudflare escalation still works without taking the site offline.
-     */
-    /**
+     * so a listener can still escalate without taking the site offline.
+     *
      * @param float  $load
      * @param string $severity
      * @param bool   $skip_maintenance_file  When true (dev-tool attribution), skip .maintenance
-     *                                        but still fire the CF escalation hook and log the
+     *                                        but still fire the escalation hook and log the
      *                                        incident — real visitors are still impacted.
      */
     private function activate_emergency_mode($load, $severity, $skip_maintenance_file = false) {
         $auto_maintenance = (bool) RTSM_Settings_Manager::get_instance()->get('rtsm_auto_maintenance', 0);
 
-        // Always record the incident and fire the CF hook regardless of maintenance suppression.
+        // Always record the incident and fire the hook regardless of maintenance suppression.
         $this->create_incident_flag($load, $severity);
         $this->generate_alert($load, $severity);
         $this->log_incident_start($load, $severity);

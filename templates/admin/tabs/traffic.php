@@ -223,7 +223,7 @@ $bar_variant     = $load_bar_pct >= 80 ? 'error' : ( $load_bar_pct >= 50 ? 'warn
                 <h3>🔍 Diagnose the load source</h3>
                 <ul>
                     <li>Check <strong>Recent Alerts</strong> below — identify which IP / URL is generating volume.</li>
-                    <li>Look at <strong>Top High-Load URLs</strong> in Historical Analysis — repeated hits to a single path suggest a scraper or bot.</li>
+                    <li>Look at <strong>URLs at Incident Start</strong> in Historical Analysis — the same path starting several incidents suggests a scraper or bot.</li>
                     <li>High <em>PHP worker</em> count + low memory use → CPU-bound PHP (bad query, missing cache).</li>
                     <li>High PHP workers + high memory → memory pressure; consider increasing PHP-FPM pool limits.</li>
                 </ul>
@@ -382,14 +382,14 @@ $thresholds = [
 <div class="mmi-process-section">
     <?php echo RTSM_UI_Helpers::section_header( 'chart-line', 'Historical Incident Analysis', 'Totals from the traffic log: what triggered entries, and who and what was hit hardest.' ); ?>
     <div class="mmi-section-content">
-    <?php if ( $stats['total_incidents'] === 0 ) : ?>
+    <?php if ( empty( $stats['event_entries'] ) ) : ?>
         <p class="mmi-text-muted"><strong>No high-load incidents recorded yet.</strong> Data appears here once the load exceeds 5.0 for the first time.</p>
     <?php else : ?>
         <div class="mmi-stats-grid">
             <?php
             echo RTSM_UI_Helpers::render_stat_box( [ 'label' => 'Logged Incidents', 'value' => esc_html( number_format( $stats['total_incidents'] ) ), 'variant' => 'error' ] );
             echo RTSM_UI_Helpers::render_stat_box( [ 'label' => 'Peak Load Recorded', 'value' => esc_html( number_format( $stats['max_load'], 2 ) ), 'variant' => 'warning' ] );
-            echo RTSM_UI_Helpers::render_stat_box( [ 'label' => 'Average Load During Incidents', 'value' => esc_html( number_format( $stats['avg_load'], 2 ) ), 'variant' => 'info' ] );
+            echo RTSM_UI_Helpers::render_stat_box( [ 'label' => 'Average Load During Incidents', 'value' => esc_html( $stats['total_incidents'] > 0 ? number_format( $stats['avg_load'], 2 ) : '—' ), 'variant' => 'info' ] );
             ?>
         </div>
 
@@ -406,12 +406,14 @@ $thresholds = [
                         'REQUEST'  => 'A real HTTP request arrived during high load',
                         'SNAPSHOT' => 'Periodic 1-minute background health snapshot',
                         'CRITICAL' => 'Load hit the emergency auto-remediation threshold',
+                        'INCIDENT_START'    => 'Load crossed the incident threshold; the request being served then is recorded',
+                        'INCIDENT_RESOLVED' => 'Load dropped back below the threshold',
                     ];
                     foreach ( $stats['by_type'] as $type => $count ) : ?>
                         <tr>
                             <td><strong><?php echo esc_html( $type ); ?></strong></td>
                             <td><?php echo esc_html( number_format( $count ) ); ?></td>
-                            <td><?php echo esc_html( round( ( $count / $stats['total_incidents'] ) * 100, 1 ) ); ?>%</td>
+                            <td><?php echo esc_html( round( ( $count / $stats['total_entries'] ) * 100, 1 ) ); ?>%</td>
                             <td class="mmi-text-muted"><?php echo esc_html( $type_hints[ $type ] ?? '' ); ?></td>
                         </tr>
                     <?php endforeach; ?>
@@ -426,11 +428,13 @@ $thresholds = [
                 <table class="mmi-uniform-table mmi-uniform-table--hoverable">
                     <thead><tr><th>Type</th><th>Count</th><th>%</th></tr></thead>
                     <tbody>
-                    <?php foreach ( $stats['by_request_type'] as $rtype => $count ) : ?>
+                    <?php
+                    $request_total = array_sum( $stats['by_request_type'] );
+                    foreach ( $stats['by_request_type'] as $rtype => $count ) : ?>
                         <tr>
                             <td><?php echo esc_html( $rtype ); ?></td>
                             <td><?php echo esc_html( number_format( $count ) ); ?></td>
-                            <td><?php echo esc_html( round( ( $count / $stats['total_incidents'] ) * 100, 1 ) ); ?>%</td>
+                            <td><?php echo esc_html( round( ( $count / $request_total ) * 100, 1 ) ); ?>%</td>
                         </tr>
                     <?php endforeach; ?>
                     </tbody>
@@ -440,19 +444,24 @@ $thresholds = [
             </div>
 
             <div>
-                <h4>🚫 Top High-Load IPs <span class="mmi-hint-text rtsm-inline-hint">IPs seen most during incidents</span></h4>
+                <h4>🚫 IPs at Incident Start <span class="mmi-hint-text rtsm-inline-hint">The visitor being served when each incident began. One sample per incident, not a count of their traffic — check the access log before blocking.</span></h4>
                 <?php if ( ! empty( $stats['top_ips'] ) ) : ?>
                 <div class="mmi-table-scroll-wrapper">
                 <table class="mmi-uniform-table mmi-uniform-table--hoverable">
-                    <thead><tr><th>IP Address</th><th>Hits</th><th>Action</th></tr></thead>
+                    <thead><tr><th>IP Address</th><th>Incidents</th><th>Action</th></tr></thead>
                     <tbody>
                     <?php
                     $cf_block_url = 'https://dash.cloudflare.com/?to=/:account/:zone/security/waf/tools/ip-access-rules';
+                    $ip_crawlers  = $stats['ip_crawlers'] ?? [];
                     foreach ( array_slice( $stats['top_ips'], 0, 10 ) as $ip => $count ) : ?>
                         <tr>
                             <td><code><?php echo esc_html( $ip ); ?></code></td>
                             <td><?php echo esc_html( number_format( $count ) ); ?></td>
-                            <td class="rtsm-nowrap"><a href="<?php echo esc_url( $cf_block_url ); ?>" target="_blank" rel="noopener">Block in Cloudflare →</a></td>
+                            <?php if ( isset( $ip_crawlers[ $ip ] ) ) : ?>
+                                <td class="mmi-text-muted"><?php echo esc_html( sprintf( 'Says it is the %s crawler. Blocking it stops indexing or link previews; check before blocking.', $ip_crawlers[ $ip ] ) ); ?></td>
+                            <?php else : ?>
+                                <td class="rtsm-nowrap"><a href="<?php echo esc_url( $cf_block_url ); ?>" target="_blank" rel="noopener">Block in Cloudflare →</a></td>
+                            <?php endif; ?>
                         </tr>
                     <?php endforeach; ?>
                     </tbody>
@@ -463,10 +472,10 @@ $thresholds = [
                 <?php endif; ?>
 
                 <?php if ( ! empty( $stats['top_urls'] ) ) : ?>
-                <h4>🔗 Top High-Load URLs</h4>
+                <h4>🔗 URLs at Incident Start <span class="mmi-hint-text rtsm-inline-hint">The URL requested when each incident began. It may not exist: bots often ask for guessed file names.</span></h4>
                 <div class="mmi-table-scroll-wrapper">
                 <table class="mmi-uniform-table mmi-uniform-table--hoverable">
-                    <thead><tr><th>URL</th><th>Hits</th></tr></thead>
+                    <thead><tr><th>URL</th><th>Incidents</th></tr></thead>
                     <tbody>
                     <?php foreach ( array_slice( $stats['top_urls'], 0, 10 ) as $url => $count ) : ?>
                         <tr>

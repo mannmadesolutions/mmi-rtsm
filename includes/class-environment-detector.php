@@ -489,7 +489,7 @@ class RTSM_Environment_Detector {
             'runcloud' => [
                 'Optimize PHP-FPM settings in RunCloud panel',
                 'Enable Redis or Memcached for object caching',
-                'Use CloudFlare integration for CDN',
+                'Serve static files through a CDN',
                 'Monitor PHP worker usage - upgrade if hitting limits'
             ],
             'unknown' => [

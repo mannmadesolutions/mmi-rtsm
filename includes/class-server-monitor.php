@@ -126,7 +126,9 @@ class RTSM_Server_Monitor {
         // Pull the summary for the selected period from the traffic logger.
         $summary = RTSM_Traffic_Logger::get_analysis_summary( $since );
 
-        if ( empty( $summary['total_incidents'] ) || $summary['total_incidents'] === 0 ) {
+        // Routine 1-minute snapshots are always present, so only incidents or
+        // requests logged under high load count as something to analyse.
+        if ( empty( $summary['event_entries'] ) ) {
             wp_send_json_success( [
                 'threat_type'        => 'normal',
                 'verdict'            => '✅ No incidents recorded',

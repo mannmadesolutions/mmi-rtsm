@@ -38,8 +38,8 @@ class RTSM_Settings_Manager {
         'rtsm_show_admin_bar' => 1,
         'rtsm_show_dashboard_widget' => 1,
         // Auto-maintenance: must be explicitly opted in to (default OFF)
-        // When disabled, RTSM still logs incidents and fires hooks (so Cloudflare escalation
-        // still works) but will NOT write ABSPATH/.maintenance to take the site offline.
+        // When disabled, RTSM still logs incidents and fires its hooks for any listener,
+        // but will NOT write ABSPATH/.maintenance to take the site offline.
         'rtsm_auto_maintenance' => 0,
     ];
     

@@ -7,7 +7,7 @@
  * nonce values that are automatically refreshed by the heartbeat system. This prevents
  * AJAX errors after nonces expire.
  * 
- * @package MMI_Cloudflare_Protection
+ * @package MMI_RTSM
  * @since 2.1.1
  */
 

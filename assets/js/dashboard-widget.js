@@ -1,5 +1,5 @@
 /**
- * MMI CloudFlare Protection - Dashboard Widget JavaScript
+ * Real-Time Server Monitor - Dashboard Widget JavaScript
  * 
  * FIX (2026-02-12): Use dynamic nonce from rtsmWidgetConfig to get fresh
  * nonce values that are automatically refreshed by the heartbeat system.

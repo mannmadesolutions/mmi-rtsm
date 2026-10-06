@@ -3,7 +3,7 @@
  * Plugin Name: MMI Real-Time Server Monitor
  * Plugin URI: https://mannmade.solutions/plugins/mmi-rtsm
  * Description: Real-time server performance monitoring for WordPress. Included with all MMI Suite licenses.
- * Version: 2.10.0
+ * Version: 2.10.2
  * License: GPL-2.0-or-later
  * License URI: https://www.gnu.org/licenses/gpl-2.0.html
  * Author: MannMade Solutions
@@ -23,7 +23,7 @@ if (!defined('ABSPATH')) {
 // ────────────────────────────────────────────────────────────────
 // 2. Plugin Constants
 // ────────────────────────────────────────────────────────────────
-define('RTSM_VERSION', '2.10.0');
+define('RTSM_VERSION', '2.10.2');
 define('RTSM_PLUGIN_DIR', plugin_dir_path(__FILE__));
 define('RTSM_PLUGIN_URL', plugin_dir_url(__FILE__));
 define('RTSM_PLUGIN_FILE', __FILE__);
@@ -44,7 +44,7 @@ function rtsm_required_capability() {
 
 /**
  * Whether the current user may use RTSM (view traffic/visitor data, kill
- * processes, toggle Cloudflare Under Attack Mode, change settings).
+ * processes, change settings).
  *
  * @return bool
  */
@@ -348,7 +348,7 @@ function rtsm_render_cron_health_html( $overdue, $total, $threshold, $admin_url 
             [ 'label' => 'Alert Threshold', 'value' => number_format( $threshold ) ],
         ],
         'detail_table_header' => '<tr><th style="padding:8px 12px;text-align:left;background:' . MMI_Email_Templates::token( 'warning_bg' ) . ';font-size:12px;text-transform:uppercase;color:' . MMI_Email_Templates::token( 'warning' ) . ';"' . MMI_Email_Templates::data_attr( [ 'warning', 'warning_bg' ] ) . '>May Affect</th></tr>',
-        'detail_table_rows'   => '<tr><td style="padding:12px;font-size:13px;color:' . MMI_Email_Templates::token( 'text_dark' ) . ';"' . MMI_Email_Templates::data_attr( [ 'text_dark' ] ) . '>Scheduled product syncs, Cloudflare IP unblocking, WooCommerce background processing, SEO and plugin maintenance tasks.</td></tr>',
+        'detail_table_rows'   => '<tr><td style="padding:12px;font-size:13px;color:' . MMI_Email_Templates::token( 'text_dark' ) . ';"' . MMI_Email_Templates::data_attr( [ 'text_dark' ] ) . '>Scheduled product syncs, WooCommerce background processing, SEO and plugin maintenance tasks.</td></tr>',
         'dashboard_url' => $admin_url,
         'cta_label'     => 'Check Cron Event List &rarr;',
     ] );
