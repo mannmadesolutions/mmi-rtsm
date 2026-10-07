@@ -661,10 +661,18 @@
             }
         });
 
-        /* Background updates when popup is closed */
+        /* Background updates when popup is closed. Skipped while the browser
+           tab is hidden: every admin page carries this poll, and each call is
+           a full admin-ajax request (~1 s of PHP), so background tabs were
+           keeping PHP workers busy for numbers nobody could see. */
         setInterval(function() {
-            if (!isOpen) { update(); }
+            if (!isOpen && !document.hidden) { update(); }
         }, refreshInterval);
+
+        /* Catch up as soon as the tab is shown again. */
+        document.addEventListener('visibilitychange', function() {
+            if (!document.hidden && !isOpen) { update(); }
+        });
 
         /* Initial update */
         update();
