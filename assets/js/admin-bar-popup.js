@@ -3,9 +3,9 @@
  * 
  * Extracted from inline script for proper caching
  * 
- * FIX (2026-02-12): Use getNonce() function instead of const nonce to get fresh
- * nonce values that are automatically refreshed by the heartbeat system. This prevents
- * AJAX errors after nonces expire.
+ * Every request goes through the shared MMINonces helper (mmi-nonce-refresh),
+ * which refreshes rtsm_nonce before it expires and retries once after a 403,
+ * so a page left open for days keeps polling.
  * 
  * @package MMI_RTSM
  * @since 2.1.1
@@ -47,8 +47,12 @@
     let countdownTickTimer   = null;
     /* ── Config ────────────────────────────────────────────────────────── */
     const config          = window.rtsmConfig || {};
-    // Getter always reads the live config so heartbeat-refreshed nonces are picked up
-    const getNonce        = () => (window.rtsmConfig && window.rtsmConfig.nonce) || config.nonce || '';
+    const NONCE_ACTION    = 'rtsm_nonce';
+    const ajaxUrl         = config.ajaxUrl || window.ajaxurl;
+    const rtsmPost        = (data) => window.MMINonces.post(NONCE_ACTION, ajaxUrl, data);
+    /* 403 = nonce still rejected after a refresh; 400 = admin-ajax's answer once the login session has ended. */
+    const isAuthFailure   = (xhr) => xhr.status === 403 || xhr.status === 400;
+    window.MMINonces.watch(NONCE_ACTION, config);
     const upgradeUrl      = config.upgradeUrl  || '';
     const settingsUrl     = config.settingsUrl || '';
     const refreshInterval = parseInt(config.refreshInterval || 10) * 1000;
@@ -72,6 +76,7 @@
     /* ── Messages ──────────────────────────────────────────────────────── */
     const MESSAGES = {
         securityFailed:     'Security verification failed. Please refresh the page.',
+        barSecurityFailed:  '⚠️ Server Monitor: refresh the page',
         connectionFailed:   'Connection failed. Please check your network.',
         errorLoading:       'Error loading processes',
         serverMonitorError: '⚠️ Server Monitor Error',
@@ -132,20 +137,27 @@
         const confirmMsg = `${i18n.killProcess || 'Kill process'} ${pid}?${forceLabel}`;
         if (!confirm(confirmMsg)) return;
 
-        $.post((config.ajaxUrl || window.ajaxurl), {
-            action: 'rtsm_kill_process',
-            nonce:  getNonce(),
-            pid,
-            force
-        }, function(r) {
+        rtsmPost({ action: 'rtsm_kill_process', pid, force }).done(function(r) {
             if (r.success) {
                 alert(r.data.message);
                 loadProcesses(currentFilter);
+            } else if (r.data && r.data.code === 'license_required') {
+                showUpgradePrompt();
             } else {
-                const tryForceMsg = `${r.data}\n\n${i18n.tryForceKill || 'Try force kill?'}`;
+                const tryForceMsg = `${(r.data && r.data.message) || r.data}\n\n${i18n.tryForceKill || 'Try force kill?'}`;
                 if (confirm(tryForceMsg)) { killProcess(pid, true); }
             }
+        }).fail(function(xhr) {
+            alert(isAuthFailure(xhr) ? MESSAGES.securityFailed : MESSAGES.connectionFailed);
         });
+    }
+
+    /**
+     * Show a message in place of the process table rows.
+     * @param {string} message
+     */
+    function showTableError(message) {
+        $(SELECTORS.processTable).html(`<tr><td colspan="${TABLE_CONFIG.columns}" class="rtsm-table-error">${esc(message)}</td></tr>`);
     }
     
     /**
@@ -187,30 +199,24 @@
         /* Show loading */
         $(SELECTORS.processTable).html(`<tr><td colspan="${TABLE_CONFIG.columns}" class="rtsm-table-loading">${i18n.loading || 'Loading...'}</td></tr>`);
 
-        if (!getNonce()) {
-            $(SELECTORS.processTable).html(`<tr><td colspan="${TABLE_CONFIG.columns}" class="rtsm-table-error">${MESSAGES.securityFailed}</td></tr>`);
+        if (!window.MMINonces.get(NONCE_ACTION)) {
+            showTableError(MESSAGES.securityFailed);
             return;
         }
 
-        $.post((config.ajaxUrl || window.ajaxurl), {
-            action: 'rtsm_get_processes',
-            nonce:  getNonce(),
-            filter
-        }, function(r) {
+        rtsmPost({ action: 'rtsm_get_processes', filter }).done(function(r) {
             if (r.success) {
                 renderProcesses(r.data.processes);
+            } else if (r.data && r.data.code === 'license_required') {
+                /* Only a missing license is an upgrade question. */
+                showUpgradePrompt();
             } else {
-                if (r.data && r.data.code === 'nonce_verification_failed') {
-                    $(SELECTORS.processTable).html(`<tr><td colspan="${TABLE_CONFIG.columns}" class="rtsm-table-error">${MESSAGES.securityFailed}</td></tr>`);
-                } else {
-                    showUpgradePrompt();
-                }
+                showTableError((r.data && r.data.message) || MESSAGES.errorLoading);
             }
         }).fail(function(xhr) {
-            const errorMessage = xhr.status === 403 ? MESSAGES.securityFailed
-                               : xhr.status === 0   ? MESSAGES.connectionFailed
-                               : MESSAGES.errorLoading;
-            $(SELECTORS.processTable).html(`<tr><td colspan="${TABLE_CONFIG.columns}" class="rtsm-table-error">${errorMessage}</td></tr>`);
+            showTableError(isAuthFailure(xhr) ? MESSAGES.securityFailed
+                         : xhr.status === 0   ? MESSAGES.connectionFailed
+                         : MESSAGES.errorLoading);
         });
     }
     
@@ -350,10 +356,9 @@
      * Fetch fresh stats from the server and update all surfaces.
      */
     function update() {
-        if (!config.ajaxUrl && typeof ajaxurl === 'undefined') { return; }
-        if (!getNonce()) { return; }
+        if (!ajaxUrl || !window.MMINonces.get(NONCE_ACTION)) { return; }
 
-        $.post((config.ajaxUrl || window.ajaxurl), { action: 'rtsm_get_stats', nonce: getNonce() }, function(r) {
+        rtsmPost({ action: 'rtsm_get_stats' }).done(function(r) {
             if (r.success) {
                 const wasPro = hasPro;
                 isPremium    = r.data.is_premium || false;
@@ -377,8 +382,9 @@
             } else {
                 $(SELECTORS.adminBarLink).html(`<span class="rtsm-error-message">${MESSAGES.serverMonitorError}</span>`);
             }
-        }).fail(function() {
-            $(SELECTORS.adminBarLink).html(`<span class="rtsm-error-message">${MESSAGES.connectionError}</span>`);
+        }).fail(function(xhr) {
+            const message = isAuthFailure(xhr) ? MESSAGES.barSecurityFailed : MESSAGES.connectionError;
+            $(SELECTORS.adminBarLink).html(`<span class="rtsm-error-message">${message}</span>`);
         });
     }
 
@@ -608,7 +614,7 @@
             $(SELECTORS.popup).toggleClass('active');
 
             if (isOpen) {
-                $.post((config.ajaxUrl || window.ajaxurl), { action: 'rtsm_get_stats', nonce: getNonce() }, function(r) {
+                rtsmPost({ action: 'rtsm_get_stats' }).done(function(r) {
                     if (r.success) {
                         isPremium = r.data.is_premium || false;
                         hasPro    = r.data.has_pro    || false;

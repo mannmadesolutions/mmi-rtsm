@@ -78,28 +78,23 @@
         $button.prop('disabled', true).addClass('mmi-is-loading');
         $results.html('<div class="notice notice-info inline"><p><span class="mmi-loading"></span> Analyzing traffic patterns…</p></div>');
 
-        $.ajax({
-            url: rtsmDiag.ajaxUrl,
-            type: 'POST',
-            data: {
-                action: 'rtsm_get_diagnostics',
-                nonce: rtsmDiag.nonce,
-                interval,
-            },
-            success: function(response) {
+        window.MMINonces.watch('rtsm_nonce', rtsmDiag);
+        window.MMINonces.post('rtsm_nonce', rtsmDiag.ajaxUrl, { action: 'rtsm_get_diagnostics', interval })
+            .done(function(response) {
                 if (response.success) {
                     displayDiagnostics(response.data);
                 } else {
                     $results.html(`<div class="notice notice-error inline"><p>Failed to analyze traffic: ${esc(response.data || 'Unknown error')}</p></div>`);
                 }
-            },
-            error: function() {
-                $results.html('<div class="notice notice-error inline"><p>Failed to connect to server. Please try again.</p></div>');
-            },
-            complete: function() {
+            })
+            .fail(function(xhr) {
+                const json = xhr.responseJSON;
+                const message = (json && json.data && json.data.message) || 'Failed to connect to server. Please try again.';
+                $results.html(`<div class="notice notice-error inline"><p>${esc(message)}</p></div>`);
+            })
+            .always(function() {
                 $button.prop('disabled', false).removeClass('mmi-is-loading');
-            },
-        });
+            });
     }
     
     /**

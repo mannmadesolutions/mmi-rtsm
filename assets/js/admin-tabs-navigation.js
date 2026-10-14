@@ -15,6 +15,7 @@
 
     /* ── AJAX config ───────────────────────────────────────────────────── */
     const AJAX_ACTION = 'rtsm_load_tab';
+    const NONCE_ACTION = 'rtsm_nonce';
 
     /* ── UI constants ──────────────────────────────────────────────────── */
     const FADE_DURATION = 200;
@@ -82,15 +83,9 @@
         /* Show loading state */
         $pane.html(MESSAGES.loadingTab.replace('%tab%', tabName));
 
-        $.ajax({
-            url:  (window.rtsmAdmin && window.rtsmAdmin.ajaxUrl) || window.ajaxurl,
-            type: 'POST',
-            data: {
-                action: AJAX_ACTION,
-                tab:    tabName,
-                nonce:  window.rtsmAdmin.nonce
-            },
-            success: function(response) {
+        window.MMINonces.watch(NONCE_ACTION, window.rtsmAdmin);
+        window.MMINonces.post(NONCE_ACTION, window.rtsmAdmin.ajaxUrl || window.ajaxurl, { action: AJAX_ACTION, tab: tabName })
+            .done(function(response) {
                 if (response.success && response.data) {
                     $pane.html(response.data);
                     $pane.data('loaded', 'true');
@@ -99,11 +94,12 @@
                     const errorMsg = response.data || 'Unknown error';
                     $pane.html(`<div class="notice notice-error inline"><p>${MESSAGES.loadFailed.replace('%error%', errorMsg)}</p></div>`);
                 }
-            },
-            error: function(xhr, status, error) {
-                $pane.html(`<div class="notice notice-error inline"><p>${MESSAGES.ajaxFailed.replace('%error%', error)}</p></div>`);
-            }
-        });
+            })
+            .fail(function(xhr, status, error) {
+                const json = xhr.responseJSON;
+                const errorMsg = (json && json.data && json.data.message) || error;
+                $pane.html(`<div class="notice notice-error inline"><p>${MESSAGES.ajaxFailed.replace('%error%', errorMsg)}</p></div>`);
+            });
     }
 
 })(jQuery);

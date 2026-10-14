@@ -7,7 +7,7 @@
  *
  * Depends on: window.rtsmAdmin (set by wp_localize_script on 'rtsm-admin-tabs')
  *   - rtsmAdmin.ajaxUrl
- *   - rtsmAdmin.nonce       (rtsm_nonce — matches ajax_get_stats() validator)
+ *   - rtsmAdmin.nonce       (rtsm_nonce, kept fresh by the shared MMINonces helper)
  *   - rtsmAdmin.refreshInterval   (seconds)
  *   - rtsmAdmin.cpuCores          (logical CPU count for load-% calculation)
  *
@@ -20,7 +20,7 @@
     /* ── Config & Constants ──────────────────────────────────────────── */
     const cfg          = window.rtsmAdmin || {};
     const ajaxUrl      = cfg.ajaxUrl || window.ajaxurl || '';
-    const nonce        = cfg.nonce || '';
+    const NONCE_ACTION = 'rtsm_nonce';
     const MIN_INTERVAL_MS = 5 * 1000;
     const DEFAULT_INTERVAL_S = 10;
     const DEFAULT_CPU_CORES = 1;
@@ -237,14 +237,14 @@
 
     /* ── Polling loop ────────────────────────────────────────────────── */
     function poll() {
-        if (!ajaxUrl || !nonce) {
+        if (!ajaxUrl || !window.MMINonces.get(NONCE_ACTION)) {
             console.warn(MESSAGES.missingConfig);
             return;
         }
         /* Only run when the traffic tab is visible (saves requests when on other tabs) */
         if (!$(SELECTORS.trafficWrap).length) { return; }
 
-        $.post(ajaxUrl, { action: AJAX_ACTION, nonce: nonce })
+        window.MMINonces.post(NONCE_ACTION, ajaxUrl, { action: AJAX_ACTION })
             .done(function (response) {
                 if (response && response.success) {
                     updateTrafficTab(response.data);
@@ -257,6 +257,7 @@
 
     /* ── Init ────────────────────────────────────────────────────────── */
     $(function () {
+        window.MMINonces.watch(NONCE_ACTION, cfg);
         /* The Traffic tab may arrive later via rtsm_load_tab, so wire the
            updates up unconditionally; poll()/updateTrafficTab() no-op while
            the tab isn't in the DOM. */

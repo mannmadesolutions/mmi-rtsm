@@ -1,8 +1,8 @@
 /**
  * Real-Time Server Monitor - Dashboard Widget JavaScript
  * 
- * FIX (2026-02-12): Use dynamic nonce from rtsmWidgetConfig to get fresh
- * nonce values that are automatically refreshed by the heartbeat system.
+ * Requests go through the shared MMINonces helper (mmi-nonce-refresh), which
+ * keeps rtsm_nonce fresh for as long as the dashboard stays open.
  */
 
 (function($) {
@@ -78,13 +78,10 @@
         : parseInt((typeof rtsmWidgetConfig !== 'undefined' && rtsmWidgetConfig.refreshInterval) || 10)
     ) * 1000;
     
-    // Helper function to get fresh nonce
-    const getNonce = () => {
-        if (typeof rtsmWidgetConfig !== 'undefined' && rtsmWidgetConfig.nonce) {
-            return rtsmWidgetConfig.nonce;
-        }
-        return '';
-    };
+    const NONCE_ACTION = 'rtsm_nonce';
+    if (typeof rtsmWidgetConfig !== 'undefined') {
+        window.MMINonces.watch(NONCE_ACTION, rtsmWidgetConfig);
+    }
     
     $(document).ready(function() {
         if (typeof rtsmWidgetConfig === 'undefined' || !rtsmWidgetConfig.nonce) {
@@ -113,21 +110,15 @@
     });
     
     function updateDashboardWidget() {
-        const nonce = getNonce();
-        if (!nonce) {
+        if (!window.MMINonces.get(NONCE_ACTION)) {
             $(SELECTORS.widgetContent).html(`<div class="rtsm-dashboard-error"><p>${MESSAGES.nonceError}</p></div>`);
             console.error('RTSM Dashboard Widget: Nonce not available');
             return;
         }
 
-        $.ajax({
-            url: (typeof rtsmWidgetConfig !== 'undefined' && rtsmWidgetConfig.ajaxUrl) || window.ajaxurl,
-            type: 'POST',
-            data: {
-                action: 'rtsm_get_stats',
-                nonce
-            },
-            success: function(response) {
+        const ajaxUrl = (typeof rtsmWidgetConfig !== 'undefined' && rtsmWidgetConfig.ajaxUrl) || window.ajaxurl;
+        window.MMINonces.post(NONCE_ACTION, ajaxUrl, { action: 'rtsm_get_stats' })
+            .done(function(response) {
                 if (response.success) {
                     isPremium = response.data.is_premium || false;
                     renderDashboardWidget(response.data);
@@ -140,16 +131,16 @@
                     } else if (typeof response.data === 'string') {
                         errorMessage = response.data;
                     }
-                    $(SELECTORS.widgetContent).html(`<div class="rtsm-dashboard-error"><p>${errorMessage}</p></div>`);
+                    $(SELECTORS.widgetContent).html(`<div class="rtsm-dashboard-error"><p>${esc(errorMessage)}</p></div>`);
                 }
-            },
-            error: function(xhr) {
-                const errorMessage = xhr.status === 403 ? MESSAGES.securityFailed
+            })
+            .fail(function(xhr) {
+                /* 403 = nonce still rejected after a refresh; 400 = the login session has ended. */
+                const errorMessage = (xhr.status === 403 || xhr.status === 400) ? MESSAGES.securityFailed
                                    : xhr.status === 0   ? MESSAGES.connectionFail
                                    : MESSAGES.statsError;
                 $(SELECTORS.widgetContent).html(`<div class="rtsm-dashboard-error"><p>${errorMessage}</p></div>`);
-            }
-        });
+            });
     }
     
     function renderDashboardWidget(data) {

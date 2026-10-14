@@ -187,8 +187,7 @@ $processes_url  = admin_url( 'admin.php?page=mmi-rtsm&tab=processes' );
                     </div>
                     <div class="mmi-toolbar">
                         <button type="button"
-                                class="button button-secondary rtsm-trigger-cron"
-                                data-nonce="<?php echo esc_attr( wp_create_nonce( 'rtsm_nonce' ) ); ?>">
+                                class="button button-secondary rtsm-trigger-cron">
                             <span class="dashicons dashicons-update"></span> Trigger Cron Now
                         </button>
                         <a href="<?php echo esc_url( admin_url( 'tools.php' ) ); ?>"

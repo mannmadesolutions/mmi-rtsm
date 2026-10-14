@@ -3,7 +3,7 @@
  * Plugin Name: MMI Real-Time Server Monitor
  * Plugin URI: https://mannmade.solutions/plugins/mmi-rtsm
  * Description: Real-time server performance monitoring for WordPress. Included with all MMI Suite licenses.
- * Version: 2.10.3
+ * Version: 2.10.4
  * License: GPL-2.0-or-later
  * License URI: https://www.gnu.org/licenses/gpl-2.0.html
  * Author: MannMade Solutions
@@ -23,7 +23,7 @@ if (!defined('ABSPATH')) {
 // ────────────────────────────────────────────────────────────────
 // 2. Plugin Constants
 // ────────────────────────────────────────────────────────────────
-define('RTSM_VERSION', '2.10.3');
+define('RTSM_VERSION', '2.10.4');
 define('RTSM_PLUGIN_DIR', plugin_dir_path(__FILE__));
 define('RTSM_PLUGIN_URL', plugin_dir_url(__FILE__));
 define('RTSM_PLUGIN_FILE', __FILE__);
@@ -64,6 +64,16 @@ function rtsm_audit( $action, array $args = [] ) {
         MMI_Audit_Log::record( 'mmi-rtsm', $action, $args );
     }
 }
+
+/**
+ * A page left open longer than a nonce's life (12-24 h) fetches a fresh
+ * rtsm_nonce through the shared library's mmi-nonce-refresh script; only
+ * users who may use RTSM get one.
+ */
+add_filter( 'mmi_refreshable_nonces', function ( $nonces ) {
+    $nonces['rtsm_nonce'] = 'rtsm_user_can';
+    return $nonces;
+} );
 
 // ── MMI Shared Library (ADR-0006, mmi-admin/docs/decisions/) ────────
 // Registers this plugin's bundled copy of MMI_Settings/MMI_Logger/

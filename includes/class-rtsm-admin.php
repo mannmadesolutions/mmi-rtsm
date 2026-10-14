@@ -52,7 +52,7 @@ class RTSM_Admin {
         wp_enqueue_script('chartjs', RTSM_PLUGIN_URL . 'assets/vendor/chart.umd.min.js', [], '4.4.1', true);
 
         if (file_exists(RTSM_PLUGIN_DIR . 'assets/js/admin-tabs-navigation.js')) {
-            wp_enqueue_script('rtsm-admin-tabs', RTSM_PLUGIN_URL . 'assets/js/admin-tabs-navigation.js', ['jquery'], RTSM_VERSION, true);
+            wp_enqueue_script('rtsm-admin-tabs', RTSM_PLUGIN_URL . 'assets/js/admin-tabs-navigation.js', ['jquery', 'mmi-nonce-refresh'], RTSM_VERSION, true);
             
             // Localize script with AJAX data - attached to the tab navigation script
             $settings = RTSM_Settings_Manager::get_instance();
@@ -80,17 +80,17 @@ class RTSM_Admin {
         }
         
         // admin-page.js depends on rtsm-admin-tabs so rtsmAdmin is defined first.
-        wp_enqueue_script('rtsm-admin-page', RTSM_PLUGIN_URL . 'assets/js/admin-page.js', ['jquery', 'rtsm-admin-tabs', 'mmi-escape-html'], RTSM_VERSION, true);
-        wp_enqueue_script('rtsm-refactored-inline', RTSM_PLUGIN_URL . 'assets/js/refactored-inline.js', ['jquery', 'mmi-escape-html'], RTSM_VERSION, true);
-        wp_enqueue_script('rtsm-traffic-tab', RTSM_PLUGIN_URL . 'assets/js/traffic-tab.js', ['jquery', 'rtsm-admin-tabs'], RTSM_VERSION, true);
+        wp_enqueue_script('rtsm-admin-page', RTSM_PLUGIN_URL . 'assets/js/admin-page.js', ['jquery', 'rtsm-admin-tabs', 'mmi-escape-html', 'mmi-nonce-refresh'], RTSM_VERSION, true);
+        wp_enqueue_script('rtsm-refactored-inline', RTSM_PLUGIN_URL . 'assets/js/refactored-inline.js', ['jquery', 'mmi-escape-html', 'mmi-nonce-refresh'], RTSM_VERSION, true);
+        wp_enqueue_script('rtsm-traffic-tab', RTSM_PLUGIN_URL . 'assets/js/traffic-tab.js', ['jquery', 'rtsm-admin-tabs', 'mmi-nonce-refresh'], RTSM_VERSION, true);
 
         // Diagnostics tab script. Enqueued here, not from the tab template:
         // the tab usually arrives via rtsm_load_tab (AJAX), where enqueueing
         // does nothing.
-        wp_enqueue_script('rtsm-diagnostics', RTSM_PLUGIN_URL . 'assets/js/diagnostics.js', ['jquery', 'chartjs'], RTSM_VERSION, true);
+        wp_enqueue_script('rtsm-diagnostics', RTSM_PLUGIN_URL . 'assets/js/diagnostics.js', ['jquery', 'chartjs', 'mmi-nonce-refresh'], RTSM_VERSION, true);
         wp_localize_script('rtsm-diagnostics', 'rtsmDiag', [
             'ajaxUrl' => admin_url('admin-ajax.php'),
-            'nonce'   => wp_create_nonce('mmi-panel-admin-nonce'),
+            'nonce'   => wp_create_nonce('rtsm_nonce'),
         ]);
 
         // Shared license panel behavior (Settings tab renders MMI_License_UI).
@@ -134,12 +134,12 @@ class RTSM_Admin {
     public static function ajax_load_tab() {
         // Graceful nonce verification (don't die on failure)
         if (!wp_verify_nonce($_POST['nonce'] ?? '', 'rtsm_nonce')) {
-            wp_send_json_error('Security verification failed. Please refresh the page.');
+            wp_send_json_error(['message' => 'Security verification failed. Please refresh the page.', 'code' => 'nonce_verification_failed'], 403);
         }
         
         // Check permissions
         if (!rtsm_user_can()) {
-            wp_send_json_error('Permission denied');
+            wp_send_json_error(['message' => 'Permission denied', 'code' => 'forbidden'], 403);
         }
         
         // Get tab name

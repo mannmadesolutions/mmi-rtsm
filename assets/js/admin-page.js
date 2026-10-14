@@ -13,7 +13,9 @@
     /* ── Configuration ──────────────────────────────────────────────── */
     const config = window.rtsmAdmin || {};
     const ajaxUrl = config.ajaxUrl || window.ajaxurl;
-    const nonce = config.nonce || '';
+    const NONCE_ACTION = 'rtsm_nonce';
+    const rtsmPost = (data) => window.MMINonces.post(NONCE_ACTION, ajaxUrl, data);
+    window.MMINonces.watch(NONCE_ACTION, config);
     // Use configured refresh interval (converted to milliseconds)
     const refreshInterval = (config.refreshInterval || 10) * 1000;
 
@@ -65,15 +67,12 @@
             return;
         }
         
-        if (!nonce) {
+        if (!window.MMINonces.get(NONCE_ACTION)) {
             console.error('RTSM: Security nonce missing');
             return;
         }
         
-        $.post(ajaxUrl, { 
-            action: 'rtsm_get_stats', 
-            nonce: nonce 
-        }, function(response) {
+        rtsmPost({ action: 'rtsm_get_stats' }).done(function(response) {
             if (response.success) {
                 updateStatsDisplay(response.data);
             }
@@ -241,7 +240,6 @@
         const trafficUrl    = rtsmAdmin.trafficUrl    || '';
         const logsUrl       = rtsmAdmin.logsUrl       || '';
         const processesUrl  = rtsmAdmin.processesUrl  || '';
-        const nonce         = rtsmAdmin.nonce         || '';
         // Derive WP Tools URL from the admin-ajax.php URL (strip query + filename)
         const admin_url_tools = (rtsmAdmin.ajaxUrl || '').replace(/\/admin-ajax\.php.*$/, '/tools.php');
 
@@ -314,9 +312,7 @@
                 detail += `<ul>${hookRows}</ul>`;
             }
 
-            const cronBtn  = nonce
-                ? `<button type="button" class="button button-secondary rtsm-trigger-cron" data-nonce="${escHtml(nonce)}"><span class="dashicons dashicons-update"></span> Trigger Cron Now</button>`
-                : '';
+            const cronBtn  = `<button type="button" class="button button-secondary rtsm-trigger-cron"><span class="dashicons dashicons-update"></span> Trigger Cron Now</button>`;
             const wpTools  = `<a href="${escHtml(admin_url_tools || (rtsmAdmin.ajaxUrl || '').replace('admin-ajax.php', 'tools.php'))}" class="button button-secondary"><span class="dashicons dashicons-admin-tools"></span> WP Tools</a>`;
             const logsBtn  = logsUrl ? `<a href="${escHtml(logsUrl)}" class="button button-secondary"><span class="dashicons dashicons-text-page"></span> View Logs</a>` : '';
 
@@ -422,9 +418,8 @@
      */
     function triggerWPCron(btn) {
         const $btn  = $(btn);
-        const nonce = $btn.data('nonce') || rtsmAdmin.nonce;
         $btn.prop('disabled', true).html('<span class="dashicons dashicons-update"></span> Triggering…');
-        $.post(rtsmAdmin.ajaxUrl, { action: 'rtsm_spawn_cron', nonce })
+        rtsmPost({ action: 'rtsm_spawn_cron' })
             .done(function(res) {
                 if (res.success) {
                     $btn.html('<span class="dashicons dashicons-yes-alt"></span> Cron triggered!');
@@ -469,7 +464,7 @@
         $(document).on('click', SELECTORS.clearIncident, function() {
             const $btn = $(this);
             $btn.prop('disabled', true).addClass('mmi-is-loading').html('<span class="mmi-loading"></span> Clearing…');
-            $.post(ajaxUrl, { action: 'rtsm_resolve_incident', nonce })
+            rtsmPost({ action: 'rtsm_resolve_incident' })
                 .done(function() {
                     $btn.closest(SELECTORS.incidentSection).remove();
                     $('#mmi-incident-notice').remove();

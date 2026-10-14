@@ -98,16 +98,16 @@ class RTSM_Server_Monitor {
      * confidence score, recommendation, url_analysis array, and user_agent_analysis
      * map — all shaped to match what displayDiagnostics() in the JS expects.
      *
-     * Nonce: mmi-panel-admin-nonce (issued in diagnostics.php via wp_localize_script)
+     * Nonce: rtsm_nonce (rtsmDiag, localized in RTSM_Admin::enqueue_assets)
      * Action: rtsm_get_diagnostics (renamed from mmi_cf_get_diagnostics in 2.9.0)
      */
     public function ajax_get_diagnostics() {
-        if ( ! rtsm_user_can() ) {
-            wp_send_json_error('Insufficient permissions', 403);
+        if ( ! check_ajax_referer('rtsm_nonce', 'nonce', false) ) {
+            wp_send_json_error( [ 'message' => 'Security verification failed. Please refresh the page.', 'code' => 'nonce_verification_failed' ], 403 );
         }
 
-        if ( ! check_ajax_referer('mmi-panel-admin-nonce', 'nonce', false) ) {
-            wp_send_json_error('Security check failed', 403);
+        if ( ! rtsm_user_can() ) {
+            wp_send_json_error( [ 'message' => 'Insufficient permissions', 'code' => 'forbidden' ], 403 );
         }
 
         $interval = sanitize_text_field( $_POST['interval'] ?? '1hour' );
@@ -246,7 +246,7 @@ class RTSM_Server_Monitor {
 
         wp_enqueue_style( 'rtsm-admin-bar', RTSM_PLUGIN_URL . 'assets/css/admin-bar.css', [], RTSM_VERSION );
         wp_enqueue_style( 'rtsm-admin-bar-popup', RTSM_PLUGIN_URL . 'assets/css/admin-bar-popup.css', [], RTSM_VERSION );
-        wp_enqueue_script( 'rtsm-admin-bar-popup', RTSM_PLUGIN_URL . 'assets/js/admin-bar-popup.js', [ 'jquery' ], RTSM_VERSION, true );
+        wp_enqueue_script( 'rtsm-admin-bar-popup', RTSM_PLUGIN_URL . 'assets/js/admin-bar-popup.js', [ 'jquery', 'mmi-nonce-refresh' ], RTSM_VERSION, true );
 
         wp_localize_script( 'rtsm-admin-bar-popup', 'rtsmConfig', [
             'ajaxUrl'         => admin_url('admin-ajax.php'),
@@ -330,7 +330,7 @@ class RTSM_Server_Monitor {
         if ($this->settings->get('rtsm_show_admin_bar', 1)) {
             wp_enqueue_style('rtsm-admin-bar', RTSM_PLUGIN_URL . 'assets/css/admin-bar.css', [], RTSM_VERSION);
             wp_enqueue_style('rtsm-admin-bar-popup', RTSM_PLUGIN_URL . 'assets/css/admin-bar-popup.css', [], RTSM_VERSION);
-            wp_enqueue_script('rtsm-admin-bar-popup', RTSM_PLUGIN_URL . 'assets/js/admin-bar-popup.js', ['jquery'], RTSM_VERSION, true);
+            wp_enqueue_script('rtsm-admin-bar-popup', RTSM_PLUGIN_URL . 'assets/js/admin-bar-popup.js', ['jquery', 'mmi-nonce-refresh'], RTSM_VERSION, true);
             
             // Localize script for admin bar popup
             wp_localize_script('rtsm-admin-bar-popup', 'rtsmConfig', [
@@ -361,7 +361,7 @@ class RTSM_Server_Monitor {
         // Enqueue dashboard widget assets on dashboard page
         if ($hook === 'index.php' && $this->settings->get('rtsm_show_dashboard_widget', 1)) {
             wp_enqueue_style('rtsm-dashboard-widget', RTSM_PLUGIN_URL . 'assets/css/dashboard-widget.css', [], RTSM_VERSION);
-            wp_enqueue_script('rtsm-dashboard-widget', RTSM_PLUGIN_URL . 'assets/js/dashboard-widget.js', ['jquery'], RTSM_VERSION, true);
+            wp_enqueue_script('rtsm-dashboard-widget', RTSM_PLUGIN_URL . 'assets/js/dashboard-widget.js', ['jquery', 'mmi-nonce-refresh'], RTSM_VERSION, true);
             
             // Localize script for dashboard widget
             wp_localize_script('rtsm-dashboard-widget', 'rtsmWidgetConfig', [
@@ -408,7 +408,7 @@ class RTSM_Server_Monitor {
         }
         
         if (!rtsm_user_can()) {
-            wp_send_json_error('Insufficient permissions');
+            wp_send_json_error(['message' => 'Insufficient permissions', 'code' => 'forbidden'], 403);
         }
         
         try {
@@ -612,12 +612,12 @@ class RTSM_Server_Monitor {
         }
         
         if (!rtsm_user_can()) {
-            wp_send_json_error('Insufficient permissions');
+            wp_send_json_error(['message' => 'Insufficient permissions', 'code' => 'forbidden'], 403);
         }
         
         // License check: process monitor requires an active MMI Suite license.
         if (!$this->license_manager || !$this->license_manager->is_licensed()) {
-            wp_send_json_error(__('Process monitoring requires an active MMI Suite license.', 'mmi-rtsm'));
+            wp_send_json_error(['message' => __('Process monitoring requires an active MMI Suite license.', 'mmi-rtsm'), 'code' => 'license_required']);
         }
 
         $filter = isset($_POST['filter']) ? sanitize_text_field($_POST['filter']) : 'all';
@@ -639,12 +639,12 @@ class RTSM_Server_Monitor {
         
         if (!rtsm_user_can()) {
             rtsm_audit('process.kill', ['outcome' => 'denied', 'details' => ['reason' => 'capability']]);
-            wp_send_json_error('Insufficient permissions');
+            wp_send_json_error(['message' => 'Insufficient permissions', 'code' => 'forbidden'], 403);
         }
         
         // License check: process management requires an active MMI Suite license.
         if (!$this->license_manager || !$this->license_manager->is_licensed()) {
-            wp_send_json_error(__('Process management requires an active MMI Suite license.', 'mmi-rtsm'));
+            wp_send_json_error(['message' => __('Process management requires an active MMI Suite license.', 'mmi-rtsm'), 'code' => 'license_required']);
         }
         
         $pid = intval($_POST['pid']);
@@ -662,7 +662,7 @@ class RTSM_Server_Monitor {
         if ($result['success']) {
             wp_send_json_success($result);
         } else {
-            wp_send_json_error($result['message']);
+            wp_send_json_error(['message' => $result['message']]);
         }
     }
     
@@ -675,7 +675,7 @@ class RTSM_Server_Monitor {
         }
         
         if (!rtsm_user_can()) {
-            wp_send_json_error('Insufficient permissions');
+            wp_send_json_error(['message' => 'Insufficient permissions', 'code' => 'forbidden'], 403);
         }
         
         $info = $this->detector->get_platform_info();

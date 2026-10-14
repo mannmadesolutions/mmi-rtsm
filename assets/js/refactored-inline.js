@@ -8,6 +8,12 @@
 (function() {
     'use strict';
 
+    /* rtsm_nonce, kept fresh by the shared MMINonces helper (mmi-nonce-refresh). */
+    const NONCE_ACTION = 'rtsm_nonce';
+    if (window.rtsmAdmin) {
+        window.MMINonces.watch(NONCE_ACTION, window.rtsmAdmin);
+    }
+
     /* ── DOM Selectors ──────────────────────────────────────────────── */
     const SELECTORS = {
         reloadButton:       '[data-action="reload"]',
@@ -126,17 +132,20 @@
     function initializeLogFileButtons() {
         onClick(SELECTORS.logButton, function() {
             const config = window.rtsmAdmin;
-            if (!config || !config.ajaxUrl || !config.nonce) return;
+            if (!config || !config.ajaxUrl || !window.MMINonces.get(NONCE_ACTION)) return;
 
             const log    = this.getAttribute('data-rtsm-log');
             const action = this.getAttribute('data-rtsm-log-action');
 
             if (action === 'download') {
-                const url = new URL(config.ajaxUrl, window.location.href);
-                url.searchParams.set('action', AJAX_ACTIONS.downloadLog);
-                url.searchParams.set('log', log);
-                url.searchParams.set('nonce', config.nonce);
-                window.location.href = url.toString();
+                // A navigation can't be retried, so make sure the nonce is fresh first.
+                window.MMINonces.fresh(NONCE_ACTION).then(function(nonce) {
+                    const url = new URL(config.ajaxUrl, window.location.href);
+                    url.searchParams.set('action', AJAX_ACTIONS.downloadLog);
+                    url.searchParams.set('log', log);
+                    url.searchParams.set('nonce', nonce);
+                    window.location.href = url.toString();
+                });
                 return;
             }
 
@@ -149,9 +158,8 @@
             const body = new FormData();
             body.append('action', AJAX_ACTIONS.clearLog);
             body.append('log', log);
-            body.append('nonce', config.nonce);
 
-            fetch(config.ajaxUrl, { method: 'POST', body: body, credentials: 'same-origin' })
+            window.MMINonces.fetch(NONCE_ACTION, config.ajaxUrl, body)
                 .then(function(res) { return res.json(); })
                 .then(function(result) {
                     if (result.success) {
@@ -318,17 +326,16 @@
         container.innerHTML = '<p class="' + CLASS_NAMES.muted + '"><span class="mmi-loading"></span> Loading processes&hellip;</p>';
 
         const config = window.rtsmAdmin;
-        if (!config || !config.ajaxUrl || !config.nonce) {
+        if (!config || !config.ajaxUrl || !window.MMINonces.get(NONCE_ACTION)) {
             container.innerHTML = '<div class="notice notice-error inline"><p>Configuration error. Please refresh the page.</p></div>';
             return;
         }
 
         const body = new FormData();
         body.append('action', 'rtsm_get_processes');
-        body.append('nonce',  config.nonce);
         body.append('filter', filter);
 
-        fetch(config.ajaxUrl, { method: 'POST', body: body, credentials: 'same-origin' })
+        window.MMINonces.fetch(NONCE_ACTION, config.ajaxUrl, body)
             .then(function(res) { return res.json(); })
             .then(function(data) {
                 if (data.success) {
@@ -411,16 +418,15 @@
 
         const body = new FormData();
         body.append('action', 'rtsm_kill_process');
-        body.append('nonce',  config.nonce);
         body.append('pid',    pid);
 
-        fetch(config.ajaxUrl, { method: 'POST', body: body, credentials: 'same-origin' })
+        window.MMINonces.fetch(NONCE_ACTION, config.ajaxUrl, body)
             .then(function(res) { return res.json(); })
             .then(function(data) {
                 if (data.success) {
                     loadProcesses(currentProcessFilter);
                 } else {
-                    showProcessNotice('Kill failed: ' + String(data.data || 'Unknown error'), 'error');
+                    showProcessNotice('Kill failed: ' + String((data.data && data.data.message) || data.data || 'Unknown error'), 'error');
                 }
             })
             .catch(function() {
