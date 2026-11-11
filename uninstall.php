@@ -59,6 +59,10 @@ $option_keys = [
     'rtsm_settings_migrated',
     'rtsm_visitor_source',
     'rtsm_visitor_requests',
+    'rtsm_visitor_db',
+    'rtsm_visitor_cursor',
+    'rtsm_visitor_pruned',
+    'rtsm_crawler_checks',
 ];
 
 foreach ( $option_keys as $key ) {
@@ -68,6 +72,11 @@ foreach ( $option_keys as $key ) {
 /* ── 4. Delete settings from the shared wp_mmi_settings table ────────────── */
 
 global $wpdb;
+
+// Visitor activity (RTSM_Visitor_Profiles): addresses and request counts, 24 h.
+// phpcs:ignore WordPress.DB.DirectDatabaseQuery, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+$wpdb->query( "DROP TABLE IF EXISTS {$wpdb->prefix}rtsm_visitor_activity" );
+delete_transient( 'rtsm_visitor_refresh_lock' );
 $table_name = $wpdb->prefix . 'mmi_settings';
 
 // Only attempt if the table exists (Hub may have been removed first).

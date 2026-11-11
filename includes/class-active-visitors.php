@@ -62,6 +62,17 @@ class RTSM_Active_Visitors {
      */
     public static function boot() {
         add_action('init', [__CLASS__, 'track_request'], 99);
+        RTSM_Visitor_Profiles::boot();
+    }
+
+    /** Bring the activity history up to date (log source) or prune it (request source). */
+    public static function refresh_activity() {
+        $state = self::state();
+        if ($state['source'] === 'access_log') {
+            RTSM_Visitor_Profiles::refresh($state['paths'], $state['self']);
+        } else {
+            RTSM_Visitor_Profiles::maintain();
+        }
     }
 
     /* ── Public API ─────────────────────────────────────────────────── */
@@ -89,10 +100,12 @@ class RTSM_Active_Visitors {
                 // in front since the last check) — count requests instead.
                 $state = self::save_state(self::request_state('proxied', $state['self']));
             } elseif ($read !== null) {
+                RTSM_Visitor_Profiles::refresh($state['paths'], $state['self']);
                 return self::result($read['ips'], 'access_log', $state, $read);
             }
         }
 
+        RTSM_Visitor_Profiles::maintain();
         return self::result(self::tracked_ips(), 'requests', $state);
     }
 
@@ -170,11 +183,19 @@ class RTSM_Active_Visitors {
             return;
         }
 
+        $method = isset($_SERVER['REQUEST_METHOD']) ? strtoupper((string) $_SERVER['REQUEST_METHOD']) : 'GET';
+        $path   = isset($_SERVER['REQUEST_URI']) ? (string) wp_unslash($_SERVER['REQUEST_URI']) : '/';
+
         $now = time();
         $map = self::load_tracked();
         if (isset($map[$ip]['t']) && $now - (int) $map[$ip]['t'] < self::TRACK_THROTTLE) {
+            // Throttled, but probes and login attempts are always recorded.
+            if (RTSM_Visitor_Profiles::request_matters($method, $path)) {
+                RTSM_Visitor_Profiles::record_request($ip, $ua, $method, $path);
+            }
             return;
         }
+        RTSM_Visitor_Profiles::record_request($ip, $ua, $method, $path);
 
         $map[$ip] = ['t' => $now, 'b' => self::bot_name($ua)];
         $cut = $now - self::WINDOW;
@@ -723,7 +744,8 @@ class RTSM_Active_Visitors {
         return array_values(array_unique($ips));
     }
 
-    private static function can_shell() {
+    /** @internal Shared with RTSM_Visitor_Profiles. */
+    public static function can_shell() {
         if (!function_exists('shell_exec')) {
             return false;
         }
@@ -734,8 +756,23 @@ class RTSM_Active_Visitors {
     /* ── Result ─────────────────────────────────────────────────────── */
 
     private static function result(array $ips, $source, array $state, array $read = []) {
-        uasort($ips, static function ($a, $b) {
-            return (int) $b['count'] <=> (int) $a['count'];
+        // Each address is judged on its recent hours, not just this minute.
+        $profiles = RTSM_Visitor_Profiles::profiles(array_map('strval', array_keys($ips)), RTSM_Visitor_Profiles::JUDGE);
+        $levels   = ['bad' => 0, 'watch' => 0, 'verified' => 0];
+        foreach ($ips as $ip => &$row) {
+            $p = $profiles[(string) $ip] ?? null;
+            $row['level']   = $p ? $p['level'] : '';
+            $row['label']   = $p ? $p['label'] : '';
+            $row['reasons'] = $p ? $p['reasons'] : [];
+            if (isset($levels[$row['level']])) {
+                $levels[$row['level']]++;
+            }
+        }
+        unset($row);
+        $rank = ['bad' => 0, 'watch' => 1, '' => 2, 'verified' => 3];
+        uasort($ips, static function ($a, $b) use ($rank) {
+            return (($rank[$a['level']] ?? 2) <=> ($rank[$b['level']] ?? 2))
+                ?: ((int) $b['count'] <=> (int) $a['count']);
         });
 
         $details = [];
@@ -745,7 +782,14 @@ class RTSM_Active_Visitors {
                 $bots++;
             }
             if (count($details) < self::MAX_DETAILS) {
-                $details[] = ['ip' => (string) $ip, 'count' => $row['count'], 'bot' => $row['bot']];
+                $details[] = [
+                    'ip'      => (string) $ip,
+                    'count'   => $row['count'],
+                    'bot'     => $row['bot'],
+                    'level'   => $row['level'],
+                    'label'   => $row['label'],
+                    'reasons' => $row['reasons'],
+                ];
             }
         }
 
@@ -798,6 +842,9 @@ class RTSM_Active_Visitors {
             'count'   => count($ips),
             'details' => $details,
             'bots'    => $bots,
+            'flagged' => $levels['bad'],
+            'watch'   => $levels['watch'],
+            'verified'=> $levels['verified'],
             'source'  => $source,
             'scope'   => (string) ($state['scope'] ?? 'site'),
             'window'  => self::WINDOW,
@@ -809,12 +856,21 @@ class RTSM_Active_Visitors {
     /* ── Helpers ────────────────────────────────────────────────────── */
 
     /** Normalised IP or ''. IPv4-mapped IPv6 ("::ffff:1.2.3.4") becomes plain IPv4. */
-    private static function valid_ip($ip) {
+    /** @internal Shared with RTSM_Visitor_Profiles. */
+    public static function valid_ip($ip) {
         $ip = trim((string) $ip, " \t\n\r\0\x0B[]");
         if (stripos($ip, '::ffff:') === 0 && filter_var(substr($ip, 7), FILTER_VALIDATE_IP, FILTER_FLAG_IPV4)) {
             $ip = substr($ip, 7);
         }
         return filter_var($ip, FILTER_VALIDATE_IP) ? $ip : '';
+    }
+
+    /**
+     * @internal Whether a log line's address is a visitor: not the server
+     * itself, not a CDN/proxy, not a private or reserved address.
+     */
+    public static function counts_as_visitor($ip, array $self, $ua = '') {
+        return !self::is_self($ip, $self, $ua) && !self::is_trusted_proxy($ip) && self::is_public($ip);
     }
 
     private static function is_public($ip) {
@@ -852,7 +908,8 @@ class RTSM_Active_Visitors {
         return $name;
     }
 
-    private static function to_time($s) {
+    /** @internal Shared with RTSM_Visitor_Profiles. */
+    public static function to_time($s) {
         static $cache = [];
         if (isset($cache[$s])) {
             return $cache[$s];

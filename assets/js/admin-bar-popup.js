@@ -449,6 +449,7 @@
                          : l >= THRESHOLDS.loadWarn ? STATUS_CLASSES.WARNING
                          : STATUS_CLASSES.SUCCESS;
         const connCount  = getConnectionCount(d.connections);
+        const flagged    = (d.connections && d.connections.flagged) || 0;
 
         const loadStr = l.toFixed(2);
         const cpuStr  = parseFloat(d.cpu_usage).toFixed(2) + '%';
@@ -464,7 +465,7 @@
             <span class="separator">|</span>
             <span class="mem-value">Mem: ${memStr}</span>
             <span class="separator">|</span>
-            <span class="conn-value">Visitors: ${connStr}</span>
+            <span class="conn-value">Visitors: ${connStr}</span>${flagged ? `<span class="rtsm-bar-flagged" title="${flagged} likely bad in the last minute">⚠ ${flagged}</span>` : ''}
             <span class="rtsm-ring-wrap" aria-hidden="true">
                 <svg class="rtsm-ring" viewBox="0 0 14 14" xmlns="http://www.w3.org/2000/svg">
                     <circle class="rtsm-ring-track" cx="7" cy="7" r="5"/>
@@ -504,7 +505,7 @@
         if (connDetails.length > 0) {
             connTooltip += MESSAGES.topIpsLabel;
             connDetails.slice(0, THRESHOLDS.tooltipConns).forEach(function(conn) {
-                const who  = conn.bot ? ` (${conn.bot})` : '';
+                const who  = conn.label ? ` (${conn.label})` : (conn.bot ? ` (${conn.bot})` : '');
                 const hits = (conn.count !== null && conn.count !== undefined) ? `: ${conn.count} requests` : '';
                 connTooltip += `${conn.ip}${who}${hits}\n`;
             });
@@ -567,7 +568,11 @@
             const hasCounts = connDetails[0].count !== null && connDetails[0].count !== undefined;
             const ipRows = connDetails.slice(0, THRESHOLDS.maxConnDisplay).map(function(conn) {
                 const barWidth = hasCounts ? Math.min((conn.count / connDetails[0].count) * 100, 100) : 0;
-                const botTag   = conn.bot ? ` <span class="rtsm-connection-ip-bot">${esc(conn.bot)}</span>` : '';
+                /* Label from the address's last 6 hours (RTSM_Visitor_Profiles); reasons on hover */
+                const why    = Array.isArray(conn.reasons) ? conn.reasons.join('\n') : '';
+                const botTag = conn.label
+                    ? ` <span class="rtsm-visitor-tag ${esc(conn.level)}" title="${esc(why)}">${esc(conn.label)}</span>`
+                    : (conn.bot ? ` <span class="rtsm-connection-ip-bot">${esc(conn.bot)}</span>` : '');
                 return `<div class="rtsm-connection-ip-row">
                     <code class="rtsm-connection-ip-code">${esc(conn.ip)}</code>${botTag}
                     <div class="rtsm-connection-ip-bar">
@@ -578,7 +583,7 @@
             }).join('');
 
             connectionDetailsHtml = `<div class="rtsm-connection-details-box">
-                <h4 class="rtsm-connection-details-title">${MESSAGES.activeConnTitle}</h4>
+                <h4 class="rtsm-connection-details-title">${MESSAGES.activeConnTitle}${connInfo.flagged ? ` · <span class="rtsm-visitor-flagged">${esc(connInfo.flagged)} likely bad</span>` : ''}${settingsUrl ? ` <a class="rtsm-visitors-link" href="${esc(settingsUrl)}#rtsm-visitors">All visitors →</a>` : ''}</h4>
                 <div class="rtsm-connection-details-grid">${ipRows}</div>
             </div>`;
         }

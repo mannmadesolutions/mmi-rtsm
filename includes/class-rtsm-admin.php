@@ -83,6 +83,8 @@ class RTSM_Admin {
         wp_enqueue_script('rtsm-admin-page', RTSM_PLUGIN_URL . 'assets/js/admin-page.js', ['jquery', 'rtsm-admin-tabs', 'mmi-escape-html', 'mmi-nonce-refresh'], RTSM_VERSION, true);
         wp_enqueue_script('rtsm-refactored-inline', RTSM_PLUGIN_URL . 'assets/js/refactored-inline.js', ['jquery', 'mmi-escape-html', 'mmi-nonce-refresh'], RTSM_VERSION, true);
         wp_enqueue_script('rtsm-traffic-tab', RTSM_PLUGIN_URL . 'assets/js/traffic-tab.js', ['jquery', 'rtsm-admin-tabs', 'mmi-nonce-refresh'], RTSM_VERSION, true);
+        // Dashboard → Visitors table (rtsm_get_visitors).
+        wp_enqueue_script('rtsm-visitors-table', RTSM_PLUGIN_URL . 'assets/js/visitors-table.js', ['jquery', 'rtsm-admin-tabs', 'mmi-escape-html', 'mmi-nonce-refresh'], RTSM_VERSION, true);
 
         // Diagnostics tab script. Enqueued here, not from the tab template:
         // the tab usually arrives via rtsm_load_tab (AJAX), where enqueueing

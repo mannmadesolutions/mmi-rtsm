@@ -305,13 +305,16 @@ class RTSM_Server_Monitor {
         $wp_admin_bar->add_node([
             'id' => 'rtsm-server-monitor',
             'title' => sprintf(
-                '<span class="rtsm-admin-bar-content"><span>%s</span><span class="load-value %s">%.2f</span><span class="separator">|</span><span class="cpu-value">CPU: %s%%</span><span class="separator">|</span><span class="mem-value">Mem: %s%%</span><span class="separator">|</span><span class="conn-value">Visitors: %s</span></span>',
+                '<span class="rtsm-admin-bar-content"><span>%s</span><span class="load-value %s">%.2f</span><span class="separator">|</span><span class="cpu-value">CPU: %s%%</span><span class="separator">|</span><span class="mem-value">Mem: %s%%</span><span class="separator">|</span><span class="conn-value">Visitors: %s</span>%s</span>',
                 $icon,
                 $colorClass,
                 $load1,
                 $cpu,
                 $memory['percent'],
-                is_array($connections) ? $connections['count'] : $connections
+                is_array($connections) ? $connections['count'] : $connections,
+                !empty($connections['flagged'])
+                    ? sprintf('<span class="rtsm-bar-flagged" title="%1$d likely bad in the last minute">⚠ %1$d</span>', (int) $connections['flagged'])
+                    : ''
             ),
             'href' => '#',
             'meta' => [

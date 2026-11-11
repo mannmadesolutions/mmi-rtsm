@@ -616,3 +616,40 @@
 .rtsm-upgrade-table-cell {
     padding: 0;
 }
+
+/* Visitor labels (RTSM_Visitor_Profiles): reasons are in the title */
+.rtsm-visitor-tag {
+    font-size: 10px;
+    font-weight: 600;
+    padding: 1px 6px;
+    border-radius: 8px;
+    white-space: nowrap;
+    cursor: help;
+    background: #f0f0f1;
+    color: #50575e;
+}
+.rtsm-visitor-tag.bad {
+    background: #fcf0f1;
+    color: #b32d2e;
+}
+.rtsm-visitor-tag.watch {
+    background: #fcf9e8;
+    color: #8a6100;
+}
+.rtsm-visitor-tag.verified {
+    background: #edfaef;
+    color: #007017;
+}
+.rtsm-visitor-flagged {
+    color: #b32d2e;
+}
+.rtsm-visitors-link {
+    float: right;
+    font-size: 12px;
+    font-weight: 400;
+}
+#wpadminbar .rtsm-bar-flagged {
+    margin-left: 6px;
+    color: #f86368;
+    font-weight: 600;
+}

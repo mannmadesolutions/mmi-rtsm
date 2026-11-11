@@ -174,3 +174,51 @@
     border-radius: 2px;
     background: var(--swatch-color, var(--mmi-gray-300));
 }
+
+/* ── Dashboard → Visitors table (visitors-table.js) ─────────────────── */
+.rtsm-visitors-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px 24px;
+    align-items: center;
+    margin-bottom: 8px;
+}
+.rtsm-visitors-scroll {
+    max-height: 640px;
+    overflow: auto;
+}
+#rtsm-visitors-table td {
+    vertical-align: top;
+}
+.rtsm-visitor-ip {
+    white-space: nowrap;
+    font-size: 12px;
+}
+.rtsm-visitor-why ul {
+    margin: 0;
+    padding-left: 16px;
+    list-style: disc;
+    min-width: 260px;
+}
+.rtsm-visitor-why li {
+    margin: 0 0 2px;
+    font-size: 12px;
+    line-height: 1.4;
+}
+.rtsm-visitor-ua {
+    max-width: 280px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 12px;
+}
+#rtsm-visitors-table .mmi-badge {
+    white-space: nowrap;
+}
+.rtsm-copy-count {
+    margin-left: 4px;
+    font-weight: 400;
+}
+.rtsm-visitors-notice {
+    margin: 0 0 8px;
+}

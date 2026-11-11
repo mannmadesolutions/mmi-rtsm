@@ -80,6 +80,62 @@ $show_causes = $load['1min'] >= 4.0 || $has_active_incident || ( $load_causes['w
         </div>
     </div>
 
+    <?php
+    // Visitors table (assets/js/visitors-table.js fills it from rtsm_get_visitors).
+    $rtsm_visitor_actions = '<button type="button" class="button" id="rtsm-visitors-copy-ips" disabled>'
+        . '<span class="dashicons dashicons-admin-page"></span> Copy addresses</button> '
+        . '<button type="button" class="button button-primary" id="rtsm-visitors-copy-rule" disabled>'
+        . '<span class="dashicons dashicons-shield"></span> Copy Cloudflare rule</button>';
+    ?>
+    <div class="mmi-process-section" id="rtsm-visitors">
+        <?php echo RTSM_UI_Helpers::section_header(
+            'groups',
+            'Visitors',
+            'Who reached the site and what they did. Each address is labelled from its last 6 hours.',
+            '',
+            $rtsm_visitor_actions
+        ); ?>
+        <div class="mmi-section-content">
+            <div class="rtsm-visitors-toolbar">
+                <div class="mmi-filter-pills" data-rtsm-visitors="window" role="group" aria-label="Time range">
+                    <button type="button" class="mmi-pill" data-value="900">Last 15 min</button>
+                    <button type="button" class="mmi-pill active" data-value="3600">Last hour</button>
+                    <button type="button" class="mmi-pill" data-value="21600">Last 6 hours</button>
+                    <button type="button" class="mmi-pill" data-value="86400">Last 24 hours</button>
+                </div>
+                <div class="mmi-filter-pills" data-rtsm-visitors="level" role="group" aria-label="Label">
+                    <button type="button" class="mmi-pill active" data-value="all">All <span class="mmi-pill-count" data-count="all"></span></button>
+                    <button type="button" class="mmi-pill" data-value="bad" title="Asked for paths no visitor asks for, made five or more login attempts, or claims to be a search engine and isn't">Likely bad <span class="mmi-pill-count" data-count="bad"></span></button>
+                    <button type="button" class="mmi-pill" data-value="watch" title="Scripts, crawlers that name themselves, and heavy page rates">Watch <span class="mmi-pill-count" data-count="watch"></span></button>
+                    <button type="button" class="mmi-pill" data-value="verified" title="Google, Bing, Apple, Yandex or Baidu, confirmed by reverse DNS">Verified crawlers <span class="mmi-pill-count" data-count="verified"></span></button>
+                    <button type="button" class="mmi-pill" data-value="none" title="Nothing unusual">No label <span class="mmi-pill-count" data-count="none"></span></button>
+                </div>
+            </div>
+            <p class="mmi-hint-text" id="rtsm-visitors-note">Loading visitors…</p>
+            <div id="rtsm-visitors-notice" aria-live="polite"></div>
+            <div class="mmi-table-scroll-wrapper rtsm-visitors-scroll">
+                <table class="mmi-uniform-table" id="rtsm-visitors-table">
+                    <thead>
+                        <tr>
+                            <th class="check-column"><input type="checkbox" id="rtsm-visitors-all" aria-label="Select all shown"></th>
+                            <th>Address</th>
+                            <th>Label</th>
+                            <th>Why</th>
+                            <th>Requests</th>
+                            <th>Pages</th>
+                            <th>Errors</th>
+                            <th>Last seen</th>
+                            <th class="rtsm-visitors-network" hidden>Network</th>
+                            <th>User agent</th>
+                            <th class="column-actions">Look up</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
     <div class="mmi-process-section">
         <?php echo RTSM_UI_Helpers::section_header('admin-site-alt3', 'Platform Information', 'What this server is running and which system calls RTSM can use.'); ?>
         <div class="mmi-section-content">

@@ -18,6 +18,17 @@ MMI Suite licenses.
   from the requests WordPress handles, which works on any host but misses
   pages served from a cache. Add log locations with the
   `rtsm_access_log_paths` filter
+- Likely bad actors: each visitor is labelled from its last 6 hours of
+  requests. **Likely bad**: asked for paths no visitor asks for (`.env`,
+  `.git`, phpunit, `wp-config` backups, shells, directory listings), made
+  five or more login attempts, or claims to be a search engine's crawler and
+  fails the reverse DNS check. **Watch**: scripts, crawlers that name
+  themselves, heavy page rates. **Verified**: Google, Bing, Apple, Yandex and
+  Baidu crawlers confirmed by reverse DNS. Shown in the admin bar popup and in
+  Dashboard → Visitors (15 min to 24 h, filters, every heading sorts), which
+  copies the chosen addresses or a Cloudflare rule expression. Nothing is
+  blocked automatically. With MMI Google Services installed, the table also
+  names each address's network
 - Process monitor with safe termination of non-system processes (licensed)
 - High-load traffic analysis: which URLs, request types and client IPs were
   active while load was elevated, with an automatic verdict (Diagnostics tab)
@@ -65,6 +76,13 @@ the last minute's lines from the access log; nothing from it is stored.
 When counting from WordPress requests instead, each visitor's address is
 kept for up to two minutes (in the object cache, or the
 `rtsm_visitor_requests` option without one) and then dropped.
+
+**Visitor activity.** To label visitors, each address's request counts,
+latest user agent and first suspicious path are kept for 24 hours in the
+`{prefix}rtsm_visitor_activity` table, in 5-minute buckets. Reverse DNS is
+looked up only for visitors claiming to be a search engine, and the result
+kept a day. The "Reports" link opens AbuseIPDB in your browser; RTSM sends
+no addresses anywhere itself. Deleting the plugin drops the table.
 
 **Client IP detection.** `CF-Connecting-IP`, `X-Forwarded-For` and
 `X-Real-IP` are only trusted when the connecting peer is a published
