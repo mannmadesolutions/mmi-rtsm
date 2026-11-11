@@ -1,7 +1,7 @@
 # MMI Real-Time Server Monitor
 
 Real-time server performance monitoring for WordPress: load average, CPU,
-memory, disk, connections and PHP workers in the admin bar, a dashboard
+memory, disk, visitors and PHP workers in the admin bar, a dashboard
 widget and a tabbed admin page (MannMade → Server Monitor). Included with all
 MMI Suite licenses.
 
@@ -10,6 +10,14 @@ MMI Suite licenses.
 ## Features
 
 - Live server metrics (admin bar popup, dashboard widget, admin page)
+- Visitors: how many different addresses reached the site in the last
+  minute, with bots named. Counted from the web server's access log when
+  PHP can read it (found automatically for RunCloud, cPanel, Plesk, GridPane
+  and common nginx/Apache/LiteSpeed paths, or set in Settings or with
+  `define( 'RTSM_ACCESS_LOG', '/path/to/access.log' )`). Otherwise counted
+  from the requests WordPress handles, which works on any host but misses
+  pages served from a cache. Add log locations with the
+  `rtsm_access_log_paths` filter
 - Process monitor with safe termination of non-system processes (licensed)
 - High-load traffic analysis: which URLs, request types and client IPs were
   active while load was elevated, with an automatic verdict (Diagnostics tab)
@@ -51,6 +59,12 @@ personal data:
 - Make sure your web server does not serve the log directory (nginx ignores
   `.htaccess`; add a `location` deny rule or set `MMI_SHARED_LOG_DIR` to a
   path outside the web root).
+
+**Visitors count.** Reads only the visitor address, time and user agent of
+the last minute's lines from the access log; nothing from it is stored.
+When counting from WordPress requests instead, each visitor's address is
+kept for up to two minutes (in the object cache, or the
+`rtsm_visitor_requests` option without one) and then dropped.
 
 **Client IP detection.** `CF-Connecting-IP`, `X-Forwarded-For` and
 `X-Real-IP` are only trusted when the connecting peer is a published

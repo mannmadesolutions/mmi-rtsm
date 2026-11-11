@@ -783,7 +783,7 @@ class RTSM_Traffic_Logger {
      * @param string $ip Validated IP address.
      * @return bool
      */
-    private static function is_trusted_proxy($ip) {
+    public static function is_trusted_proxy($ip) {
         // Cloudflare published ranges: https://www.cloudflare.com/ips/
         $ranges = [
             '173.245.48.0/20', '103.21.244.0/22', '103.22.200.0/22', '103.31.4.0/22',

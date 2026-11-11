@@ -57,6 +57,8 @@ $option_keys = [
     'rtsm_show_dashboard_widget',
     'rtsm_auto_maintenance',
     'rtsm_settings_migrated',
+    'rtsm_visitor_source',
+    'rtsm_visitor_requests',
 ];
 
 foreach ( $option_keys as $key ) {
@@ -85,6 +87,7 @@ if ( $table_exists ) {
         'rtsm_show_admin_bar',
         'rtsm_show_dashboard_widget',
         'rtsm_auto_maintenance',
+        'rtsm_access_log_path',
     ];
 
     foreach ( $rtsm_setting_keys as $key ) {

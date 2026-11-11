@@ -263,7 +263,7 @@ class RTSM_Server_Monitor {
                 'load1m'             => __('Load (1m)', 'mmi-rtsm'),
                 'cpu'                => __('CPU', 'mmi-rtsm'),
                 'memory'             => __('Memory', 'mmi-rtsm'),
-                'connections'        => __('Connections', 'mmi-rtsm'),
+                'connections'        => __('Visitors', 'mmi-rtsm'),
                 'unlockPremium'      => __('Unlock Premium Features', 'mmi-rtsm'),
                 'premiumDescription' => __('Get real-time process monitoring with kill capabilities, advanced filters, and detailed metrics', 'mmi-rtsm'),
                 'upgradeNow'         => __('Upgrade Now', 'mmi-rtsm'),
@@ -305,7 +305,7 @@ class RTSM_Server_Monitor {
         $wp_admin_bar->add_node([
             'id' => 'rtsm-server-monitor',
             'title' => sprintf(
-                '<span class="rtsm-admin-bar-content"><span>%s</span><span class="load-value %s">%.2f</span><span class="separator">|</span><span class="cpu-value">CPU: %s%%</span><span class="separator">|</span><span class="mem-value">Mem: %s%%</span><span class="separator">|</span><span class="conn-value">Conn: %s</span></span>',
+                '<span class="rtsm-admin-bar-content"><span>%s</span><span class="load-value %s">%.2f</span><span class="separator">|</span><span class="cpu-value">CPU: %s%%</span><span class="separator">|</span><span class="mem-value">Mem: %s%%</span><span class="separator">|</span><span class="conn-value">Visitors: %s</span></span>',
                 $icon,
                 $colorClass,
                 $load1,
@@ -348,7 +348,7 @@ class RTSM_Server_Monitor {
                     'load1m' => __('Load (1m)', 'mmi-rtsm'),
                     'cpu' => __('CPU', 'mmi-rtsm'),
                     'memory' => __('Memory', 'mmi-rtsm'),
-                    'connections' => __('Connections', 'mmi-rtsm'),
+                    'connections' => __('Visitors', 'mmi-rtsm'),
                     'unlockPremium' => __('Unlock Premium Features', 'mmi-rtsm'),
                     'premiumDescription' => __('Get real-time process monitoring with kill capabilities, advanced filters, and detailed metrics', 'mmi-rtsm'),
                     'upgradeNow' => __('Upgrade Now', 'mmi-rtsm'),

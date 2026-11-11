@@ -575,6 +575,13 @@
     font-family: monospace;
 }
 
+/* Crawler name beside a visitor address (Google, Bing, Bot …) */
+.rtsm-connection-ip-bot {
+    font-size: 10px;
+    color: #646970;
+    white-space: nowrap;
+}
+
 .rtsm-connection-ip-bar {
     flex: 1;
     height: 6px;

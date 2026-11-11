@@ -115,13 +115,18 @@
             $memBox.find(SELECTORS.statSublabel).text(`${memUsed} MB / ${memTotal} MB`);
         }
 
-        // Connections
-        const connections = typeof data.connections === 'object'
-            ? (data.connections.count || 0)
-            : (data.connections || 0);
+        // Visitors (last minute) — the payload keeps its old 'connections' key
+        const conn = (typeof data.connections === 'object' && data.connections !== null) ? data.connections : null;
+        const connections = conn ? (conn.count || 0) : (data.connections || 0);
         const $connBox = $(SELECTORS.statConnections);
         if ($connBox.length) {
             $connBox.find(SELECTORS.statValue).text(connections);
+            if (conn && conn.note) {
+                $connBox.find(SELECTORS.statSublabel).text(conn.note);
+            }
+            if (conn && conn.explain) {
+                $connBox.attr('title', conn.explain);
+            }
         }
 
         // Last-updated timestamp

@@ -23,7 +23,23 @@ if (isset($_POST['rtsm_save_settings']) && check_admin_referer('rtsm_settings'))
         'rtsm_show_dashboard_widget' => (int) $settings_manager->get('rtsm_show_dashboard_widget', 1),
         'rtsm_refresh_interval'      => (int) $settings_manager->get_refresh_interval(),
         'rtsm_auto_maintenance'      => (int) $settings_manager->get('rtsm_auto_maintenance', 0),
+        'rtsm_access_log_path'       => (string) $settings_manager->get('rtsm_access_log_path', ''),
     ];
+
+    // Access log for the Visitors count: empty = find it automatically.
+    // A typed path is kept only if it reads as an access log; only visitor
+    // addresses and counts are ever taken from it.
+    $rtsm_log_error = '';
+    if (isset($_POST['rtsm_access_log_path'])) {
+        $rtsm_log_path = trim(sanitize_text_field(wp_unslash($_POST['rtsm_access_log_path'])));
+        if ($rtsm_log_path !== '') {
+            $rtsm_log_error = RTSM_Active_Visitors::check_path($rtsm_log_path);
+        }
+        if ($rtsm_log_error === '') {
+            $settings_manager->set('rtsm_access_log_path', $rtsm_log_path);
+        }
+        RTSM_Active_Visitors::reset();
+    }
 
     $settings_manager->set('rtsm_show_admin_bar', isset($_POST['rtsm_show_admin_bar']) ? 1 : 0);
     $settings_manager->set('rtsm_show_dashboard_widget', isset($_POST['rtsm_show_dashboard_widget']) ? 1 : 0);
@@ -41,6 +57,7 @@ if (isset($_POST['rtsm_save_settings']) && check_admin_referer('rtsm_settings'))
         'rtsm_show_dashboard_widget' => (int) $settings_manager->get('rtsm_show_dashboard_widget', 1),
         'rtsm_refresh_interval'      => (int) $settings_manager->get_refresh_interval(),
         'rtsm_auto_maintenance'      => (int) $settings_manager->get('rtsm_auto_maintenance', 0),
+        'rtsm_access_log_path'       => (string) $settings_manager->get('rtsm_access_log_path', ''),
     ];
     // Key names only — none of these are secret, but the audit log policy is names, not values.
     rtsm_audit('settings.update', [
@@ -49,7 +66,11 @@ if (isset($_POST['rtsm_save_settings']) && check_admin_referer('rtsm_settings'))
         'details'     => ['changed_keys' => array_keys(array_diff_assoc($rtsm_after, $rtsm_before))],
     ]);
     
-    echo wp_kses_post(RTSM_UI_Helpers::render_notice('Settings saved successfully!', 'success'));
+    if ($rtsm_log_error !== '') {
+        echo wp_kses_post(RTSM_UI_Helpers::render_notice('Other settings saved. The access log was not changed: ' . $rtsm_log_error, 'warning'));
+    } else {
+        echo wp_kses_post(RTSM_UI_Helpers::render_notice('Settings saved successfully!', 'success'));
+    }
 }
 
 // Get current settings values
@@ -58,6 +79,9 @@ $show_admin_bar = $settings_manager->get('rtsm_show_admin_bar', 1);
 $show_dashboard_widget = $settings_manager->get('rtsm_show_dashboard_widget', 1);
 
 $auto_maintenance = $settings_manager->get('rtsm_auto_maintenance', 0);
+$access_log_path = (string) $settings_manager->get('rtsm_access_log_path', '');
+$access_log_locked = defined('RTSM_ACCESS_LOG');
+$visitor_source = RTSM_Active_Visitors::describe();
 
 // Get platform info
 $platform_info = class_exists('RTSM_Platform_Detector')
@@ -97,6 +121,25 @@ if ( class_exists( 'MMI_License_UI' ) ) {
                             <option value="60" <?php selected($refresh_interval, 60); ?>>1 minute</option>
                         </select>
                         <span class="mmi-hint-text">How often to refresh stats in the dashboard widget and admin bar.</span>
+                    </div>
+                </div>
+                <div class="mmi-label-grid-row">
+                    <label for="rtsm_access_log_path"><strong>Visitors Count</strong></label>
+                    <div>
+                        <p>
+                            <?php if ($visitor_source['source'] === 'access_log') : ?>
+                                Counted from the web server's access log: <code><?php echo esc_html(implode(', ', $visitor_source['paths'])); ?></code>
+                            <?php else : ?>
+                                Counted from the requests WordPress handles.
+                            <?php endif; ?>
+                        </p>
+                        <span class="mmi-hint-text"><?php echo esc_html($visitor_source['explain']); ?></span>
+                        <?php if ($access_log_locked) : ?>
+                            <span class="mmi-hint-text">The access log is set by <code>RTSM_ACCESS_LOG</code> in wp-config.php.</span>
+                        <?php else : ?>
+                            <input type="text" class="regular-text code" name="rtsm_access_log_path" id="rtsm_access_log_path" value="<?php echo esc_attr($access_log_path); ?>" placeholder="Find automatically" />
+                            <span class="mmi-hint-text">Access log file to count from. Leave empty to find it automatically. Your host's control panel shows where it is.</span>
+                        <?php endif; ?>
                     </div>
                 </div>
                 <div class="mmi-label-grid-row">

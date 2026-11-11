@@ -55,7 +55,7 @@ $show_causes = $load['1min'] >= 4.0 || $has_active_incident || ( $load_causes['w
         <?php echo RTSM_UI_Helpers::section_header(
             'dashboard',
             'Current Server Status',
-            'Load, CPU, memory and connections, refreshed live.',
+            'Load, CPU, memory and visitors, refreshed live.',
             '',
             '<span id="rtsm-last-update" class="mmi-text-muted">Last updated ' . esc_html(current_time('H:i:s')) . '</span>'
         ); ?>

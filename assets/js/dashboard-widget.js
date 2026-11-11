@@ -148,10 +148,14 @@
         const cpuValue = data.cpu && data.cpu.percent ? parseFloat(data.cpu.percent) : parseFloat(data.cpu_usage || 0);
         const memValue = parseFloat(data.memory.percent || 0);
         
-        // Handle connections - could be a number or an object with count property
+        // Visitors in the last minute (payload key is still 'connections')
         let connections = 0;
+        let connNote = 'Last minute';
+        let connExplain = '';
         if (typeof data.connections === 'object' && data.connections !== null) {
             connections = parseInt(data.connections.count || 0);
+            connNote = data.connections.note || connNote;
+            connExplain = data.connections.explain || '';
         } else {
             connections = parseInt(data.connections || 0);
         }
@@ -288,10 +292,10 @@
                     <div class="rtsm-value ${memClass}" data-metric="mem">${newMemStr}</div>
                     <div class="rtsm-subtitle">${memValue.toFixed(2)}% of ${data.memory.total}MB</div>
                 </div>
-                <div class="rtsm-card">
-                    <h4>Connections</h4>
+                <div class="rtsm-card" title="${esc(connExplain)}">
+                    <h4>Visitors</h4>
                     <div class="rtsm-value" data-metric="conn">${newConnStr}</div>
-                    <div class="rtsm-subtitle">Active</div>
+                    <div class="rtsm-subtitle">${esc(connNote)}</div>
                 </div>
             </div>
             <h3 class="rtsm-server-ip-heading">

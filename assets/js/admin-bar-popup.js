@@ -85,7 +85,7 @@
         lastUpdated:        'Last: %time% • %interval%s',
         topIpsLabel:        'Top IPs:\n',
         topConnSubtitle:    'Top: %ip% (%count%)',
-        activeConnTitle:    '🌐 Active Connection IPs',
+        activeConnTitle:    '🌐 Visitors in the last minute',
     };
 
     /* ── Thresholds ────────────────────────────────────────────────────── */
@@ -464,7 +464,7 @@
             <span class="separator">|</span>
             <span class="mem-value">Mem: ${memStr}</span>
             <span class="separator">|</span>
-            <span class="conn-value">Conn: ${connStr}</span>
+            <span class="conn-value">Visitors: ${connStr}</span>
             <span class="rtsm-ring-wrap" aria-hidden="true">
                 <svg class="rtsm-ring" viewBox="0 0 14 14" xmlns="http://www.w3.org/2000/svg">
                     <circle class="rtsm-ring-track" cx="7" cy="7" r="5"/>
@@ -498,18 +498,20 @@
         const connDetails = getConnectionDetails(d.connections);
         const serverIp    = d.server_ip || 'Unknown';
 
-        /* Build tooltip for connections card */
-        let connTooltip = '';
+        /* Tooltip for the visitors card: where the number comes from, then the top addresses */
+        const connInfo = (typeof d.connections === 'object' && d.connections !== null) ? d.connections : {};
+        let connTooltip = connInfo.explain ? connInfo.explain + '\n\n' : '';
         if (connDetails.length > 0) {
-            connTooltip = MESSAGES.topIpsLabel;
+            connTooltip += MESSAGES.topIpsLabel;
             connDetails.slice(0, THRESHOLDS.tooltipConns).forEach(function(conn) {
-                connTooltip += `${conn.ip}: ${conn.count} conn\n`;
+                const who  = conn.bot ? ` (${conn.bot})` : '';
+                const hits = (conn.count !== null && conn.count !== undefined) ? `: ${conn.count} requests` : '';
+                connTooltip += `${conn.ip}${who}${hits}\n`;
             });
         }
 
-        const firstConn   = connDetails[0] || null;
-        const connSubHtml = firstConn
-            ? `<div class="rtsm-popup-subtitle">Top: ${esc(firstConn.ip)} (${esc(firstConn.count)})</div>`
+        const connSubHtml = connInfo.note
+            ? `<div class="rtsm-popup-subtitle">${esc(connInfo.note)}</div>`
             : '';
 
         const newLoad = parseFloat(d.load['1min']).toFixed(2);
@@ -561,15 +563,18 @@
         /* Connection details section */
         let connectionDetailsHtml = '';
         if (connDetails.length > 0) {
+            /* Request counts exist only when counted from the access log */
+            const hasCounts = connDetails[0].count !== null && connDetails[0].count !== undefined;
             const ipRows = connDetails.slice(0, THRESHOLDS.maxConnDisplay).map(function(conn) {
-                const barWidth = Math.min((conn.count / connDetails[0].count) * 100, 100);
+                const barWidth = hasCounts ? Math.min((conn.count / connDetails[0].count) * 100, 100) : 0;
+                const botTag   = conn.bot ? ` <span class="rtsm-connection-ip-bot">${esc(conn.bot)}</span>` : '';
                 return `<div class="rtsm-connection-ip-row">
-                    <code class="rtsm-connection-ip-code">${esc(conn.ip)}</code>
+                    <code class="rtsm-connection-ip-code">${esc(conn.ip)}</code>${botTag}
                     <div class="rtsm-connection-ip-bar">
                         <div class="rtsm-connection-ip-bar-fill" style="--bar-width:${barWidth}%"></div>
                     </div>
                 </div>
-                <div class="rtsm-connection-ip-count">${conn.count}</div>`;
+                <div class="rtsm-connection-ip-count">${hasCounts ? esc(conn.count) : ''}</div>`;
             }).join('');
 
             connectionDetailsHtml = `<div class="rtsm-connection-details-box">

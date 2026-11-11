@@ -3,7 +3,7 @@
  * Plugin Name: MMI Real-Time Server Monitor
  * Plugin URI: https://mannmade.solutions/plugins/mmi-rtsm
  * Description: Real-time server performance monitoring for WordPress. Included with all MMI Suite licenses.
- * Version: 2.10.5
+ * Version: 2.11.0
  * License: GPL-2.0-or-later
  * License URI: https://www.gnu.org/licenses/gpl-2.0.html
  * Author: MannMade Solutions
@@ -23,7 +23,7 @@ if (!defined('ABSPATH')) {
 // ────────────────────────────────────────────────────────────────
 // 2. Plugin Constants
 // ────────────────────────────────────────────────────────────────
-define('RTSM_VERSION', '2.10.5');
+define('RTSM_VERSION', '2.11.0');
 define('RTSM_PLUGIN_DIR', plugin_dir_path(__FILE__));
 define('RTSM_PLUGIN_URL', plugin_dir_url(__FILE__));
 define('RTSM_PLUGIN_FILE', __FILE__);
@@ -101,6 +101,7 @@ require_once RTSM_PLUGIN_DIR . 'includes/class-shared-hosting-metrics.php';
 require_once RTSM_PLUGIN_DIR . 'includes/class-stats-collector.php';
 require_once RTSM_PLUGIN_DIR . 'includes/class-license-manager.php';
 require_once RTSM_PLUGIN_DIR . 'includes/class-traffic-logger.php';
+require_once RTSM_PLUGIN_DIR . 'includes/class-active-visitors.php';
 require_once RTSM_PLUGIN_DIR . 'includes/class-server-monitor.php';
 
 // RTSM Admin Interface
@@ -138,6 +139,9 @@ function rtsm_init() {
     if ( ! class_exists( 'MMI_License_Gate' ) || ! MMI_License_Gate::is_open( 'mmi-rtsm' ) ) {
         return;
     }
+
+    // Counts visitors from WordPress requests on hosts with no usable access log.
+    RTSM_Active_Visitors::boot();
 
     // Initialize shared hosting metrics (FREE tier)
     RTSM_Shared_Hosting_Metrics::instance();
@@ -262,6 +266,12 @@ if (defined('WP_CLI') && WP_CLI && class_exists('WP_CLI')) {
             $load = sys_getloadavg();
             // @phpstan-ignore-next-line
             \WP_CLI::log('  Current Load: ' . round($load[0], 2));
+        }
+
+        if (class_exists('RTSM_Active_Visitors')) {
+            $visitors = RTSM_Active_Visitors::get();
+            // @phpstan-ignore-next-line
+            \WP_CLI::log('  Visitors (last minute): ' . $visitors['count'] . ' — ' . $visitors['explain']);
         }
     });
 }

@@ -422,7 +422,12 @@ class RTSM_Stats_Collector {
     }
     
     /**
-     * Get active connections
+     * Visitors in the last minute (RTSM_Active_Visitors). Keeps its old name
+     * and the 'connections' key in every payload so callers and saved
+     * snapshots keep working; the old open-socket count was always 0 behind
+     * a proxy or CDN.
+     *
+     * @return array{count:int, details:array, source:string, note:string, explain:string}
      */
     public function get_connections() {
         $cached = get_transient( 'rtsm_stat_connections' );
@@ -430,47 +435,9 @@ class RTSM_Stats_Collector {
             return $cached;
         }
 
-        if ($this->detector->has_capability('shell_exec')) {
-            // Get detailed connection information with IPs.
-            // ss is 10-100x faster than netstat under high connection counts and
-            // handles D-state process contention far better under server load.
-            $connections_output = @shell_exec("timeout 5 ss -tn state established 'sport = :80' 2>/dev/null | tail -n +2 | awk '{print \$5}' | cut -d: -f1 | sort | uniq -c | sort -rn | head -20");
-            
-            $connection_details = [];
-            $real_count = 0;
-            
-            if ($connections_output) {
-                $lines = array_filter(explode("\n", trim($connections_output)));
-                foreach ($lines as $line) {
-                    $line = trim($line);
-                    if (preg_match('/^\s*(\d+)\s+(.+)$/', $line, $matches)) {
-                        $ip = trim($matches[2]);
-                        $count = intval($matches[1]);
-                        
-                        // Filter out internal/local IPs and Cloudflare proxies
-                        if ($this->should_include_ip($ip)) {
-                            $connection_details[] = [
-                                'ip' => $ip,
-                                'count' => $count
-                            ];
-                            $real_count += $count;
-                        }
-                    }
-                }
-            }
-            
-            $result = [
-                'count' => $real_count,
-                'details' => $connection_details
-            ];
-            set_transient( 'rtsm_stat_connections', $result, self::CACHE_TTL );
-            return $result;
-        }
-        
-        return [
-            'count' => 0,
-            'details' => []
-        ];
+        $result = RTSM_Active_Visitors::get();
+        set_transient( 'rtsm_stat_connections', $result, self::CACHE_TTL );
+        return $result;
     }
 
     /**
@@ -550,47 +517,6 @@ class RTSM_Stats_Collector {
         return $snapshot;
     }
 
-    /**
-     * Determine if an IP should be included in connection tracking
-     * Filters out localhost, private networks, and Cloudflare IPs
-     */
-    private function should_include_ip($ip) {
-        // Filter localhost and loopback
-        if ($ip === '127.0.0.1' || $ip === '::1' || strpos($ip, '127.') === 0) {
-            return false;
-        }
-        
-        // Filter private network ranges (RFC 1918)
-        if (preg_match('/^10\./', $ip) ||                    // 10.0.0.0/8
-            preg_match('/^172\.(1[6-9]|2[0-9]|3[0-1])\./', $ip) || // 172.16.0.0/12
-            preg_match('/^192\.168\./', $ip)) {              // 192.168.0.0/16
-            return false;
-        }
-        
-        // Filter Cloudflare IP ranges (common ones)
-        // Full list at: https://www.cloudflare.com/ips/
-        $cloudflare_ranges = [
-            '173.245.48.', '103.21.244.', '103.22.200.', '103.31.4.', '141.101.64.',
-            '108.162.192.', '190.93.240.', '188.114.96.', '197.234.240.', '198.41.128.',
-            '162.158.', '104.16.', '104.17.', '104.18.', '104.19.', '104.20.', '104.21.',
-            '104.22.', '104.23.', '104.24.', '104.25.', '104.26.', '104.27.', '104.28.'
-        ];
-        
-        foreach ($cloudflare_ranges as $range) {
-            if (strpos($ip, $range) === 0) {
-                return false;
-            }
-        }
-        
-        // Check if it's the server's own external IP
-        $server_ip = @shell_exec("hostname -I 2>/dev/null | awk '{print $1}'");
-        if ($server_ip && trim($server_ip) === $ip) {
-            return false;
-        }
-        
-        return true;
-    }
-    
     /**
      * Parse memory limit string to bytes
      */
