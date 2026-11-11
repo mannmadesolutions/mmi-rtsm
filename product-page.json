@@ -1,0 +1,291 @@
+{
+    "product": 195171,
+    "name": "MMI Real-Time Server Monitor",
+    "excerpt": "Live server health for WordPress: CPU, memory, disk and background-queue load at a glance.",
+    "intro": "MMI Real-Time Server Monitor shows what your server is doing right now from inside WordPress — CPU, memory, disk I/O, PHP workers and background-queue depth — so you can see trouble building before your store slows down.",
+    "features": [
+        {
+            "id": "live-dashboard",
+            "text": "Live dashboard with history",
+            "anchor": "function:ajax_get_stats",
+            "since": ""
+        },
+        {
+            "id": "email-alerts",
+            "text": "Alerts by email when load crosses your thresholds",
+            "anchor": "function:rtsm_run_cron_health_check",
+            "since": ""
+        },
+        {
+            "id": "any-host",
+            "text": "Works on dedicated, VPS and shared hosting (shows what each host exposes)",
+            "anchor": "class:RTSM_Platform_Detector",
+            "since": ""
+        }
+    ],
+    "sections": [],
+    "requirements": "WordPress 5.8+, PHP 7.4+.",
+    "suite_line": "live server health",
+    "screenshots": [
+        {
+            "slug": "rtsm-dashboard",
+            "attachment": 214157,
+            "title": "Server dashboard",
+            "caption": "Load, CPU, memory and connections, refreshed live.",
+            "features": [
+                "Load average for 1, 5 and 15 minutes, with a usage bar",
+                "CPU and memory use, with memory shown as used against total",
+                "Platform information: hosting platform, web server, PHP version and hostname",
+                "Badges show which system calls the plugin can use on this server"
+            ],
+            "screen": [
+                "templates/admin/admin-page.php",
+                "templates/admin/tabs/dashboard.php",
+                "templates/partials/stat-*.php",
+                "includes/class-platform-detector.php",
+                "assets/js/admin-page.js",
+                "assets/js/visitors-table.js",
+                "assets/css/admin.css"
+            ],
+            "taken": {
+                "date": "2026-10-15",
+                "commit": "637d8ee"
+            }
+        },
+        {
+            "slug": "rtsm-traffic-status",
+            "attachment": 214158,
+            "title": "Traffic analysis",
+            "caption": "Live load measured against the server's own CPU cores.",
+            "features": [
+                "A status badge for the server's current state",
+                "Load, CPU, memory used and active PHP-FPM workers",
+                "Load saturation as a share of comfortable capacity (2× cores)",
+                "A plain-language verdict that says whether any action is needed"
+            ],
+            "screen": [
+                "templates/admin/admin-page.php",
+                "templates/admin/tabs/traffic.php",
+                "assets/js/traffic-tab.js",
+                "assets/css/admin.css"
+            ],
+            "taken": {
+                "date": "2026-10-15",
+                "commit": "637d8ee"
+            }
+        },
+        {
+            "slug": "rtsm-thresholds",
+            "attachment": 214159,
+            "title": "Auto-remediation thresholds",
+            "caption": "What the plugin does at each load level, with the current level marked.",
+            "features": [
+                "Elevated, Critical, Emergency and Recovery levels, each with the load that triggers it",
+                "Elevated logs every high-load request (URL, IP, user agent, memory) for later analysis",
+                "Critical and Emergency set an incident flag, write detailed logs, and fire alerts and hooks",
+                "A short explainer of what load average means on this server's core count"
+            ],
+            "screen": [
+                "templates/admin/admin-page.php",
+                "templates/admin/tabs/traffic.php",
+                "assets/js/traffic-tab.js",
+                "assets/css/admin.css"
+            ],
+            "taken": {
+                "date": "2026-10-15",
+                "commit": "637d8ee"
+            }
+        },
+        {
+            "slug": "rtsm-incidents",
+            "attachment": 214160,
+            "title": "Historical incident analysis",
+            "caption": "What triggered log entries, and who and what was hit hardest.",
+            "features": [
+                "Logged incidents, peak load and average load during incidents",
+                "Incident types with counts and what each one means",
+                "The visitor IP at each incident start, with a Block in Cloudflare link and a warning before blocking a known crawler",
+                "The URL requested when each incident began"
+            ],
+            "screen": [
+                "templates/admin/admin-page.php",
+                "templates/admin/tabs/traffic.php",
+                "assets/css/admin.css"
+            ],
+            "taken": {
+                "date": "2026-10-15",
+                "commit": "637d8ee"
+            }
+        },
+        {
+            "slug": "rtsm-processes",
+            "attachment": 214161,
+            "title": "Process monitor",
+            "caption": "Running processes, busiest first.",
+            "features": [
+                "PID, user, CPU %, memory %, elapsed time and command for each process",
+                "Filter to PHP, MySQL, Node.js, Python or high-CPU processes",
+                "Kill a runaway process from its row; system processes are locked",
+                "Sort on any column"
+            ],
+            "screen": [
+                "templates/admin/admin-page.php",
+                "templates/admin/tabs/processes.php",
+                "assets/js/refactored-inline.js",
+                "assets/css/admin.css"
+            ],
+            "taken": {
+                "date": "2026-10-15",
+                "commit": "637d8ee"
+            }
+        },
+        {
+            "slug": "rtsm-diagnostics",
+            "attachment": 214162,
+            "title": "Intelligent diagnostics",
+            "caption": "Reads the traffic log to tell external attacks apart from code issues.",
+            "features": [
+                "Pick a time period and click Analyze Traffic",
+                "Three verdicts: Attack Detected, Code Issue and Normal Operations",
+                "Each verdict lists its indicators and the action to take"
+            ],
+            "screen": [
+                "templates/admin/admin-page.php",
+                "templates/admin/tabs/diagnostics.php",
+                "assets/js/diagnostics.js",
+                "assets/css/admin.css"
+            ],
+            "taken": {
+                "date": "2026-10-15",
+                "commit": "637d8ee"
+            }
+        },
+        {
+            "slug": "rtsm-alerts",
+            "attachment": 214163,
+            "title": "System alerts",
+            "caption": "The alert log, newest entries first.",
+            "features": [
+                "The 50 most recent alert entries",
+                "Download the full log",
+                "Clear all alerts in one click"
+            ],
+            "screen": [
+                "templates/admin/admin-page.php",
+                "templates/admin/tabs/logs.php",
+                "assets/css/admin.css"
+            ],
+            "taken": {
+                "date": "2026-10-15",
+                "commit": "637d8ee"
+            }
+        },
+        {
+            "slug": "rtsm-traffic-logs",
+            "attachment": 214164,
+            "title": "Traffic logs and log files",
+            "caption": "The traffic log's latest entries, and where both logs live on disk.",
+            "features": [
+                "The 50 most recent traffic-log entries, newest first",
+                "Download or clear the traffic log",
+                "Path, size and status for the traffic and alert log files"
+            ],
+            "screen": [
+                "templates/admin/admin-page.php",
+                "templates/admin/tabs/logs.php",
+                "assets/css/admin.css"
+            ],
+            "taken": {
+                "date": "2026-10-15",
+                "commit": "637d8ee"
+            }
+        },
+        {
+            "slug": "rtsm-settings",
+            "attachment": 214165,
+            "title": "Settings",
+            "caption": "License, refresh rate, and where the live stats appear.",
+            "features": [
+                "License status, including licensing through MMI Suite",
+                "How often the dashboard widget and admin bar refresh",
+                "Turn the admin-bar stats and the dashboard widget on or off"
+            ],
+            "screen": [
+                "templates/admin/admin-page.php",
+                "templates/admin/tabs/settings.php",
+                "assets/css/admin.css"
+            ],
+            "taken": {
+                "date": "2026-10-15",
+                "commit": "637d8ee"
+            }
+        },
+        {
+            "slug": "rtsm-auto-remediation",
+            "attachment": 214166,
+            "title": "Auto-remediation",
+            "caption": "Optionally take the site offline for visitors while load is critical.",
+            "features": [
+                "Off by default; when on, the site goes into maintenance mode at Critical and Emergency load, for non-admin visitors only, until load recovers",
+                "Grace periods: Critical needs 3 checks over 120 seconds, Emergency 2 checks over 60 seconds",
+                "Logging, alerts and the rtsm_critical_load / rtsm_emergency_mode_* hooks run whether it is on or off",
+                "System information for support requests"
+            ],
+            "screen": [
+                "templates/admin/admin-page.php",
+                "templates/admin/tabs/settings.php",
+                "assets/css/admin.css"
+            ],
+            "taken": {
+                "date": "2026-10-15",
+                "commit": "637d8ee"
+            }
+        },
+        {
+            "slug": "rtsm-dashboard-widget",
+            "attachment": 214167,
+            "title": "Dashboard widget and admin bar",
+            "caption": "Live stats on the WordPress dashboard and in the admin bar.",
+            "features": [
+                "Load, CPU, memory and connections in the admin bar",
+                "A dashboard widget with the same stats and the top processes",
+                "A countdown bar to the next refresh",
+                "View Full Dashboard opens the monitor"
+            ],
+            "screen": [
+                "templates/dashboard-widget.php",
+                "assets/js/dashboard-widget.js",
+                "assets/css/dashboard-widget.css",
+                "assets/css/admin-bar.css",
+                "includes/class-server-monitor.php"
+            ],
+            "taken": {
+                "date": "2026-10-15",
+                "commit": "637d8ee"
+            }
+        },
+        {
+            "slug": "rtsm-quick-view",
+            "attachment": 214168,
+            "title": "Admin-bar popup",
+            "caption": "Click the admin-bar stats for a quick look in a popup.",
+            "features": [
+                "Load, CPU, memory and connections",
+                "Filter processes: All, High CPU, PHP, Python, Node or MySQL",
+                "Kill a process from the popup; system processes are locked",
+                "Shows when it last refreshed and counts down to the next refresh"
+            ],
+            "screen": [
+                "templates/admin-bar-popup.php",
+                "assets/js/admin-bar-popup.js",
+                "assets/css/admin-bar-popup.css",
+                "assets/css/admin-bar.css",
+                "includes/class-server-monitor.php"
+            ],
+            "taken": {
+                "date": "2026-10-15",
+                "commit": "637d8ee"
+            }
+        }
+    ]
+}
