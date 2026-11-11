@@ -48,6 +48,7 @@ class RTSM_Active_Visitors {
     const MAX_TRACKED    = 300;      // addresses kept when counting requests
     const TRACK_THROTTLE = 15;       // seconds before the same address is written again
     const MAX_DETAILS    = 20;
+    const MAX_LAG        = 900;      // a log with nothing newer than 15 minutes is quiet, not behind
 
     /** "IP [ident user] [time]" — combined/common log format, with an optional leading vhost field. */
     const LINE_RE = '/^(\S+)\s+(\S+).*?\[(\d{2}\/[A-Za-z]{3}\/\d{4}:\d{2}:\d{2}:\d{2} [+-]\d{4})\]/';
@@ -88,7 +89,7 @@ class RTSM_Active_Visitors {
                 // in front since the last check) — count requests instead.
                 $state = self::save_state(self::request_state('proxied', $state['self']));
             } elseif ($read !== null) {
-                return self::result($read['ips'], 'access_log', $state);
+                return self::result($read['ips'], 'access_log', $state, $read);
             }
         }
 
@@ -247,13 +248,17 @@ class RTSM_Active_Visitors {
      * Read the last WINDOW seconds of one or more logs and merge them.
      */
     private static function read_logs(array $paths, array $self, $window, $max_read) {
-        $merged = ['ips' => [], 'proxied' => false, 'parsed' => 0, 'opened' => 0];
+        $merged = ['ips' => [], 'proxied' => false, 'parsed' => 0, 'opened' => 0, 'anchor' => 0, 'quiet' => true];
         $countable = 0;
         $proxy = 0;
         foreach ($paths as $path) {
             $r = self::read_log((string) $path, $self, $window, $max_read);
             $merged['parsed'] += $r['parsed'];
             $merged['opened'] += $r['opened'] ? 1 : 0;
+            if ($r['opened'] && !$r['quiet']) {
+                $merged['quiet'] = false;
+                $merged['anchor'] = max($merged['anchor'], $r['anchor']);
+            }
             $countable += $r['countable'];
             $proxy += $r['proxy'];
             foreach ($r['ips'] as $ip => $row) {
@@ -269,28 +274,39 @@ class RTSM_Active_Visitors {
     }
 
     /**
-     * Read one log backwards from its end until lines are older than $window.
+     * Read one log backwards from its end and count the last $window seconds
+     * it has recorded.
      *
-     * @return array{parsed:int, countable:int, proxy:int, proxied:bool, ips:array}
+     * Web servers often write their log in batches (nginx `buffer=`), so the
+     * newest line can be a minute or more old. The window therefore ends at
+     * the log's newest line, not at "now", and the result says how far
+     * behind that is ('anchor'). A log with nothing newer than MAX_LAG
+     * counts as quiet: the window ends now and finds nothing.
+     *
+     * @return array{parsed:int, countable:int, proxy:int, proxied:bool, ips:array, opened:bool, anchor:int}
      */
     private static function read_log($path, array $self, $window, $max_read) {
-        $out = ['parsed' => 0, 'countable' => 0, 'proxy' => 0, 'proxied' => false, 'ips' => [], 'opened' => false];
-        $cutoff = time() - (int) $window;
+        $out = ['parsed' => 0, 'countable' => 0, 'proxy' => 0, 'proxied' => false, 'ips' => [], 'opened' => false, 'anchor' => 0, 'quiet' => true];
 
         $fh = @fopen($path, 'rb');
         if (!$fh) {
-            $buf = self::shell_tail_window($path, $cutoff, $max_read);
+            $buf = self::shell_tail_window($path, $window, $max_read);
             if ($buf === null) {
                 return $out;
             }
             $out['opened'] = true;
-            return self::parse_lines($buf, $out, $self, $cutoff);
+            $newest = self::newest_time($buf);
+            $out['anchor'] = self::anchor($newest);
+            $out['quiet'] = $out['anchor'] !== $newest;
+            return self::parse_lines($buf, $out, $self, $out['anchor'] - (int) $window);
         }
         $out['opened'] = true;
         $stat = @fstat($fh);
         $pos = $stat ? (int) $stat['size'] : 0;
         $buf = '';
         $read = 0;
+        $anchor = 0;
+        $newest = 0;
 
         while ($pos > 0 && $read < $max_read) {
             $len = (int) min(self::CHUNK, $pos);
@@ -305,10 +321,17 @@ class RTSM_Active_Visitors {
             $read += strlen($chunk);
             $buf = $chunk . $buf;
 
+            if ($anchor === 0) {
+                $newest = self::newest_time($buf);
+                if ($newest === 0) {
+                    continue; // no whole line yet
+                }
+                $anchor = self::anchor($newest);
+            }
             // Stop once the oldest whole line read is past the window (a few
             // seconds of slack: lines are written when requests finish).
             $t = self::oldest_time($buf);
-            if ($t > 0 && $t < $cutoff - 5) {
+            if ($t > 0 && $t < $anchor - $window - 5) {
                 break;
             }
         }
@@ -320,7 +343,33 @@ class RTSM_Active_Visitors {
             $buf = ($nl === false) ? '' : substr($buf, $nl + 1);
         }
 
-        return self::parse_lines($buf, $out, $self, $cutoff);
+        $out['anchor'] = $anchor ?: time();
+        $out['quiet'] = $out['anchor'] !== $newest;
+        return self::parse_lines($buf, $out, $self, $out['anchor'] - (int) $window);
+    }
+
+    /** Where the counted window ends: the log's newest line, or now when the log is quiet. */
+    private static function anchor($newest) {
+        $now = time();
+        $lag = $now - (int) $newest;
+        return ($newest > 0 && $lag >= 0 && $lag <= self::MAX_LAG) ? (int) $newest : $now;
+    }
+
+    /** Time of the last whole line in a buffer (looking a few lines back past a half-written one); 0 if none. */
+    private static function newest_time($buf) {
+        $end = strlen($buf);
+        for ($i = 0; $i < 5 && $end > 0; $i++) {
+            $nl = strrpos($buf, "\n", $end - strlen($buf) - 1);
+            $line = substr($buf, $nl === false ? 0 : $nl + 1, $end - ($nl === false ? 0 : $nl + 1));
+            if ($line !== '' && preg_match(self::LINE_RE, $line, $m)) {
+                return self::to_time($m[3]);
+            }
+            if ($nl === false) {
+                break;
+            }
+            $end = $nl;
+        }
+        return 0;
     }
 
     /** Time of the first whole line in a buffer that starts mid-line; 0 if none. */
@@ -342,7 +391,7 @@ class RTSM_Active_Visitors {
      *
      * @return string|null Whole lines, or null when the file can't be read this way.
      */
-    private static function shell_tail_window($path, $cutoff, $max_read) {
+    private static function shell_tail_window($path, $window, $max_read) {
         if (!self::can_shell() || !function_exists('escapeshellarg')) {
             return null;
         }
@@ -352,6 +401,7 @@ class RTSM_Active_Visitors {
                 return null;
             }
             $short = strlen($buf) < $bytes; // whole file read
+            $cutoff = self::anchor(self::newest_time($buf)) - (int) $window;
             $t = self::oldest_time($buf);
             if ($short || ($t > 0 && $t < $cutoff - 5) || $bytes >= $max_read) {
                 if (!$short) {
@@ -683,7 +733,7 @@ class RTSM_Active_Visitors {
 
     /* ── Result ─────────────────────────────────────────────────────── */
 
-    private static function result(array $ips, $source, array $state) {
+    private static function result(array $ips, $source, array $state, array $read = []) {
         uasort($ips, static function ($a, $b) {
             return (int) $b['count'] <=> (int) $a['count'];
         });
@@ -701,14 +751,32 @@ class RTSM_Active_Visitors {
 
         if ($source === 'access_log') {
             $server_wide = ($state['scope'] ?? 'site') === 'server';
-            $note = $server_wide
-                ? __('Last minute · all sites on this server', 'mmi-rtsm')
-                : __('Last minute · from the server log', 'mmi-rtsm');
+            $where = $server_wide ? __('all sites on this server', 'mmi-rtsm') : __('from the server log', 'mmi-rtsm');
+            $quiet = !empty($read['quiet']);
+            $lag   = (!$quiet && !empty($read['anchor'])) ? max(0, time() - (int) $read['anchor']) : 0;
+            $ago   = $lag < 90
+                /* translators: %d: seconds */
+                ? sprintf(__('%d s', 'mmi-rtsm'), $lag)
+                /* translators: %d: minutes */
+                : sprintf(__('%d min', 'mmi-rtsm'), (int) round($lag / 60));
+
             $explain = sprintf(
                 /* translators: %s: access log file path(s) */
-                __('Different visitor addresses in the web server\'s access log (%s) in the last 60 seconds. Includes cached pages and bots.', 'mmi-rtsm'),
+                __('Different visitor addresses in the web server\'s access log (%s) over 60 seconds. Includes cached pages and bots.', 'mmi-rtsm'),
                 implode(', ', (array) $state['paths'])
             );
+            if ($quiet) {
+                $note = __('Nothing logged in 15 min', 'mmi-rtsm');
+                $explain .= ' ' . __('Nothing has been written to the log in the last 15 minutes: the site is quiet, or the web server is holding log lines back.', 'mmi-rtsm');
+            } elseif ($lag >= 20) {
+                /* translators: 1: how long ago, e.g. "2 min"; 2: where the count comes from */
+                $note = sprintf(__('Minute ending %1$s ago · %2$s', 'mmi-rtsm'), $ago, $where);
+                /* translators: %s: how long ago, e.g. "2 min" */
+                $explain .= ' ' . sprintf(__('The web server writes its log in batches, so this is the latest minute it has written, ending %s ago.', 'mmi-rtsm'), $ago);
+            } else {
+                /* translators: %s: where the count comes from */
+                $note = sprintf(__('Last minute · %s', 'mmi-rtsm'), $where);
+            }
             if ($server_wide) {
                 $explain .= ' ' . __('This log is shared by every site on the server; set this site\'s own log in Settings to count it alone.', 'mmi-rtsm');
             }
