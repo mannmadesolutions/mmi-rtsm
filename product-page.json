@@ -1,20 +1,38 @@
 {
     "product": 195171,
     "name": "MMI Real-Time Server Monitor",
-    "excerpt": "Live server health for WordPress: CPU, memory, disk and background-queue load at a glance.",
-    "intro": "MMI Real-Time Server Monitor shows what your server is doing right now from inside WordPress — CPU, memory, disk I/O, PHP workers and background-queue depth — so you can see trouble building before your store slows down.",
+    "excerpt": "Live server health for WordPress: load, CPU, memory and visitors at a glance, with likely bad visitors flagged.",
+    "intro": "MMI Real-Time Server Monitor shows what your server is doing right now from inside WordPress: load, CPU, memory, PHP workers and visitors in the last minute. It also points out visitors who look like trouble, so you can see a problem building before your store slows down.",
     "features": [
         {
             "id": "live-dashboard",
-            "text": "Live dashboard with history",
+            "text": "Live dashboard, with a history of high-load incidents",
             "anchor": "function:ajax_get_stats",
             "since": ""
         },
         {
             "id": "email-alerts",
-            "text": "Alerts by email when load crosses your thresholds",
+            "text": "Logs every load alert, and emails you when WordPress's scheduled jobs back up",
             "anchor": "function:rtsm_run_cron_health_check",
             "since": ""
+        },
+        {
+            "id": "visitors",
+            "text": "Visitors in the last minute, counted from your web server's log or from the pages WordPress serves",
+            "anchor": "class:RTSM_Active_Visitors",
+            "since": "2.11.0"
+        },
+        {
+            "id": "likely-bad-visitors",
+            "text": "Flags likely bad visitors: probing for weak spots, repeated login attempts, fake Google or Bing crawlers",
+            "anchor": "class:RTSM_Visitor_Profiles",
+            "since": "2.11.2"
+        },
+        {
+            "id": "cloudflare-rule",
+            "text": "Copy their addresses, or a ready-made Cloudflare rule to block them",
+            "anchor": "file:assets/js/visitors-table.js",
+            "since": "2.11.2"
         },
         {
             "id": "any-host",
@@ -24,19 +42,20 @@
         }
     ],
     "sections": [],
-    "requirements": "WordPress 5.8+, PHP 7.4+.",
+    "requirements": "WordPress 5.9+, PHP 7.4+.",
     "suite_line": "live server health",
     "screenshots": [
         {
             "slug": "rtsm-dashboard",
             "attachment": 214157,
             "title": "Server dashboard",
-            "caption": "Load, CPU, memory and connections, refreshed live.",
+            "caption": "Load, CPU, memory and visitors, refreshed live.",
             "features": [
                 "Load average for 1, 5 and 15 minutes, with a usage bar",
                 "CPU and memory use, with memory shown as used against total",
                 "Platform information: hosting platform, web server, PHP version and hostname",
-                "Badges show which system calls the plugin can use on this server"
+                "Badges show which system calls the plugin can use on this server",
+                "Visitors: who reached the site, labelled from their last 6 hours, with filters from 15 minutes to 24 hours"
             ],
             "screen": [
                 "templates/admin/admin-page.php",
@@ -208,7 +227,8 @@
             "features": [
                 "License status, including licensing through MMI Suite",
                 "How often the dashboard widget and admin bar refresh",
-                "Turn the admin-bar stats and the dashboard widget on or off"
+                "Turn the admin-bar stats and the dashboard widget on or off",
+                "Where the Visitors count comes from, and the access log to read if it isn't found automatically"
             ],
             "screen": [
                 "templates/admin/admin-page.php",
@@ -247,7 +267,7 @@
             "title": "Dashboard widget and admin bar",
             "caption": "Live stats on the WordPress dashboard and in the admin bar.",
             "features": [
-                "Load, CPU, memory and connections in the admin bar",
+                "Load, CPU, memory and visitors in the admin bar, with a warning count when likely bad visitors are on the site",
                 "A dashboard widget with the same stats and the top processes",
                 "A countdown bar to the next refresh",
                 "View Full Dashboard opens the monitor"
@@ -270,7 +290,7 @@
             "title": "Admin-bar popup",
             "caption": "Click the admin-bar stats for a quick look in a popup.",
             "features": [
-                "Load, CPU, memory and connections",
+                "Load, CPU, memory and visitors, each visitor labelled with the reason on hover",
                 "Filter processes: All, High CPU, PHP, Python, Node or MySQL",
                 "Kill a process from the popup; system processes are locked",
                 "Shows when it last refreshed and counts down to the next refresh"
