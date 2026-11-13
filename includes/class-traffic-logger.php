@@ -229,8 +229,13 @@ class RTSM_Traffic_Logger {
             'ssh_session'      => '/sshd:.+(pts|\@notty|priv)/i',
             // Generic development tools invoked over SSH
             'dev_tools'        => '/(rsync|rclone|scp |sftp-server|git (fetch|clone|pull|push)|npm (install|run|ci)|composer (install|update|dump)|yarn (install|add))/i',
-            // Monitoring / health-check agents that are benign
-            'monitoring'       => '/runcloudagent|runcloud|newrelic|datadog|htop|iostat|vmstat|sar\b/i',
+            // Headless browsers run by test suites and browser checks (Playwright, Puppeteer, WebKit's WPE processes)
+            'browser_tests'    => '/ms-playwright|playwright|puppeteer|headless_shell|chrome-headless|WPEWebProcess|MiniBrowser/i',
+            // Monitoring / health-check agents that are benign. The RunCloud agent by its binary only: a bare
+            // "runcloud" matched every process on a RunCloud server (/home/runcloud/…, /RunCloud/Packages/php…, and
+            // WP-CLI itself at /RunCloud/Packages/RunCloudAgent/bin/wp-cli), so the site's cron runner, WP-CLI jobs and
+            // test browsers were all reported as "Monitoring" and counted as dev load (2.11.4).
+            'monitoring'       => '/RunCloudAgent\/runcloud\b|newrelic|datadog|\bhtop\b|iostat|vmstat|\bsar\b/i',
             // Scheduled backup tools — resource-intensive but temporary and expected
             'backup'           => '/mydumper|myloader|mysqldump|mariadb-dump|xtrabackup|innobackupex|percona-xtrabackup|borgbackup|restic|duplicati|rclone sync|rclone copy|rsync.*--backup/i',
         ];
@@ -342,6 +347,7 @@ class RTSM_Traffic_Logger {
         if (strpos($command, 'bootstrap-fork') !== false)   return 'VS Code Extension Process';
         if (strpos($command, '.vscode-server') !== false)   return 'VS Code Server Process';
         if (preg_match('/sshd:.*@/', $command))             return 'SSH Session';
+        if ($category === 'browser_tests')                  return 'Headless browser (tests)';
         if (strpos($command, 'rsync') !== false)            return 'rsync (file sync)';
         if (strpos($command, 'rclone') !== false)           return 'rclone (file sync)';
         if (strpos($command, 'git ') !== false)             return 'git operation';
