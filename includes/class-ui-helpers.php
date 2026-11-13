@@ -355,6 +355,7 @@ class RTSM_UI_Helpers {
         <div class="rtsm-premium-preview-wrapper">
             <?php if ( ! empty( $args['preview_content'] ) ) : ?>
                 <div class="rtsm-premium-preview-content">
+                    <?php // audit-ok: both callers (processes/diagnostics tabs) pass static hardcoded placeholder HTML ?>
                     <?php echo $args['preview_content']; ?>
                 </div>
             <?php endif; ?>

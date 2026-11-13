@@ -156,6 +156,7 @@ $processes_url  = admin_url( 'admin.php?page=mmi-rtsm&tab=processes' );
                     <h3>
                         <span class="dashicons dashicons-clock"></span>
                         <strong>Overdue WP-Cron Jobs</strong>
+                        <?php // audit-ok: $badge_class is the literal 'error' or 'warning' set just above ?>
                         <span class="mmi-badge <?php echo $badge_class; ?>">
                             <?php echo esc_html( number_format( $overdue ) ); ?> overdue
                         </span>
@@ -262,6 +263,7 @@ $processes_url  = admin_url( 'admin.php?page=mmi-rtsm&tab=processes' );
                     <h3>
                         <span class="dashicons dashicons-dashboard"></span>
                         <strong>Memory Pressure</strong>
+                        <?php // audit-ok: $mem_badge_cls is the literal 'error' or 'warning' set just above ?>
                         <span class="mmi-badge <?php echo $mem_badge_cls; ?>">
                             <?php echo esc_html( number_format( $mem_pct, 1 ) ); ?>% used
                         </span>

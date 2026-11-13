@@ -391,7 +391,8 @@ class RTSM_Stats_Collector {
         // Kill the process
         $signal = $force ? '-9' : '-15';
         @shell_exec("kill $signal $pid 2>&1");
-        
+
+        // audit-ok: one 0.5 s wait after an admin-clicked kill so the exit check is accurate
         usleep(500000);
         $still_running = @shell_exec("ps -p $pid --no-headers 2>/dev/null");
         

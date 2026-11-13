@@ -401,6 +401,7 @@ class RTSM_Environment_Detector {
         $disabled = explode(',', ini_get('disable_functions'));
         
         foreach ($functions as $func) {
+            // audit-ok: 8 fixed function names checked against the short disable_functions list
             if (function_exists($func) && !in_array($func, $disabled)) {
                 $available[] = $func;
             }

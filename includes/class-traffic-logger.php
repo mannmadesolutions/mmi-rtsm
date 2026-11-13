@@ -252,6 +252,8 @@ class RTSM_Traffic_Logger {
         $categories   = [];
         $dev_procs    = [];
         $backup_procs = [];
+        $seen_dev     = [];
+        $seen_backup  = [];
 
         foreach ($lines as $line) {
             $parts = preg_split('/\s+/', trim($line), 11);
@@ -271,13 +273,16 @@ class RTSM_Traffic_Logger {
 
                     // Build a human-readable label for logging
                     $label = $this->describe_dev_process($command, $category);
-                    if ($cpu >= 1.0 && !in_array($label, $dev_procs)) {
+                    // Once per label: the list holds "label (cpu%)", so it was never matched by the bare label.
+                    if ($cpu >= 1.0 && !isset($seen_dev[$label])) {
+                        $seen_dev[$label] = true;
                         $dev_procs[] = sprintf('%s (%.1f%%)', $label, $cpu);
                     }
                     // Track backup processes separately for cause-panel granularity
                     if ($category === 'backup') {
                         $backup_cpu += $cpu;
-                        if (!in_array($label, $backup_procs)) {
+                        if (!isset($seen_backup[$label])) {
+                            $seen_backup[$label] = true;
                             $backup_procs[] = sprintf('%s (%.1f%%)', $label, $cpu);
                         }
                     }
@@ -615,8 +620,8 @@ class RTSM_Traffic_Logger {
             'memory_used' => round(memory_get_peak_usage(true) / 1024 / 1024, 2) . 'MB',
             'php_processes' => $this->count_php_processes(),
             'is_admin' => is_admin() ? 'yes' : 'no',
-            'is_ajax' => defined('DOING_AJAX') && DOING_AJAX ? 'yes' : 'no',
-            'is_cron' => defined('DOING_CRON') && DOING_CRON ? 'yes' : 'no',
+            'is_ajax' => wp_doing_ajax() ? 'yes' : 'no',
+            'is_cron' => wp_doing_cron() ? 'yes' : 'no',
             'is_rest' => defined('REST_REQUEST') && REST_REQUEST ? 'yes' : 'no',
             'user_id' => get_current_user_id(),
         ];
@@ -864,6 +869,7 @@ class RTSM_Traffic_Logger {
         foreach ($pairs as $i => $pair) {
             $name = strtolower(urldecode(explode('=', $pair, 2)[0]));
             $name = preg_replace('/\[.*$/', '', $name);
+            // audit-ok: haystack is the ~20 fixed sensitive key names; loop is one URL's query pairs
             if (in_array($name, $sensitive, true)) {
                 $pairs[$i] = explode('=', $pair, 2)[0] . '=REDACTED';
             }

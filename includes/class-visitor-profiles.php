@@ -254,11 +254,11 @@ class RTSM_Visitor_Profiles {
 
     /** Drop history older than KEEP, at most hourly. */
     public static function maintain() {
-        $last = (int) get_option('rtsm_visitor_pruned', 0);
+        $last = (int) MMI_Settings::get('rtsm_visitor_pruned', 0);
         if ($last > time() - HOUR_IN_SECONDS || (int) get_option(self::DB_OPTION, 0) < self::DB_VERSION) {
             return;
         }
-        update_option('rtsm_visitor_pruned', time(), false);
+        MMI_Settings::set('rtsm_visitor_pruned', time());
         self::prune();
     }
 

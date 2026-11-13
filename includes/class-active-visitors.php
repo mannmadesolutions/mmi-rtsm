@@ -164,7 +164,7 @@ class RTSM_Active_Visitors {
      * Writes at most once per address per TRACK_THROTTLE seconds.
      */
     public static function track_request() {
-        if ((defined('DOING_CRON') && DOING_CRON) || (defined('WP_CLI') && WP_CLI)) {
+        if (wp_doing_cron() || (defined('WP_CLI') && WP_CLI)) {
             return;
         }
         $state = get_option(self::STATE_OPTION);
@@ -677,6 +677,7 @@ class RTSM_Active_Visitors {
             $out = @shell_exec($cmd);
             foreach (is_string($out) ? explode("\n", trim($out)) : [] as $row) {
                 $bar = strrpos($row, '|');
+                // audit-ok: loop and haystack are the few candidate access-log paths
                 if ($bar !== false && in_array(substr($row, 0, $bar), $blocked, true)) {
                     $found[substr($row, 0, $bar)] = (int) substr($row, $bar + 1);
                 }
