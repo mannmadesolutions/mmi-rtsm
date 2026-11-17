@@ -1,3 +1,6 @@
 lint pass ship 8 files
 audit pass ship 8 files
 site-rules skip no gate in this repo
+page pass 6 features, 12 screenshots; 12 warnings
+release-audit fail 27 dead (dead-ajax 1, dead-class 1, dead-constant 1, dead-function 19, dead-js-function 1, dead-private 4), 0 high, 0 new
+review fail 2 open, 0 fixed, 0 not real
