@@ -86,6 +86,7 @@
         topIpsLabel:        'Top IPs:\n',
         topConnSubtitle:    'Top: %ip% (%count%)',
         activeConnTitle:    '🌐 Visitors in the last minute',
+        youTitle:           'Your own address. Every device on your network shares it: your phone, other computers, and scripts running on them.',
     };
 
     /* ── Thresholds ────────────────────────────────────────────────────── */
@@ -505,7 +506,7 @@
         if (connDetails.length > 0) {
             connTooltip += MESSAGES.topIpsLabel;
             connDetails.slice(0, THRESHOLDS.tooltipConns).forEach(function(conn) {
-                const who  = conn.label ? ` (${conn.label})` : (conn.bot ? ` (${conn.bot})` : '');
+                const who  = conn.you ? ' (you)' : conn.label ?` (${conn.label})` : (conn.bot ? ` (${conn.bot})` : '');
                 const hits = (conn.count !== null && conn.count !== undefined) ? `: ${conn.count} requests` : '';
                 connTooltip += `${conn.ip}${who}${hits}\n`;
             });
@@ -570,8 +571,11 @@
                 const barWidth = hasCounts ? Math.min((conn.count / connDetails[0].count) * 100, 100) : 0;
                 /* Label from the address's last 6 hours (RTSM_Visitor_Profiles); reasons on hover */
                 const why    = Array.isArray(conn.reasons) ? conn.reasons.join('\n') : '';
-                const botTag = conn.label
-                    ? ` <span class="rtsm-visitor-tag ${esc(conn.level)}" title="${esc(why)}">${esc(conn.label)}</span>`
+                /* The viewer's own network replaces its label; the label's reasons stay on hover */
+                const botTag = conn.you
+                    ? ` <span class="rtsm-visitor-tag you" title="${esc([MESSAGES.youTitle].concat(why ? [why] : []).join('\n\n'))}">You</span>`
+                    : conn.label
+                    ?` <span class="rtsm-visitor-tag ${esc(conn.level)}" title="${esc(why)}">${esc(conn.label)}</span>`
                     : (conn.bot ? ` <span class="rtsm-connection-ip-bot">${esc(conn.bot)}</span>` : '');
                 return `<div class="rtsm-connection-ip-row">
                     <code class="rtsm-connection-ip-code">${esc(conn.ip)}</code>${botTag}

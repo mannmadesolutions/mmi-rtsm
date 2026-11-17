@@ -240,6 +240,40 @@ class RTSM_Active_Visitors {
     }
 
     /**
+     * Flag the rows that are the person looking at the list: the same address
+     * as this request, or (IPv6) the same /64, since a computer rotates its
+     * temporary IPv6 addresses inside one network. Done per request, after the
+     * shared cached result is read, so each admin sees only their own row.
+     *
+     * @param array $rows Rows with an 'ip' key.
+     * @return array The rows, each with 'you' => bool.
+     */
+    public static function mark_viewer(array $rows) {
+        $viewer = self::client_ip();
+        foreach ($rows as &$row) {
+            $row['you'] = $viewer !== '' && is_array($row) && isset($row['ip'])
+                && self::same_network((string) $row['ip'], $viewer);
+        }
+        unset($row);
+        return $rows;
+    }
+
+    /** Same IPv4 address, or IPv6 addresses in the same /64. */
+    private static function same_network($a, $b) {
+        if ($a === $b) {
+            return true;
+        }
+        $pa = @inet_pton($a);
+        $pb = @inet_pton($b);
+        if ($pa === false || $pb === false) {
+            return false;
+        }
+        return strlen($pa) === 16 && strlen($pb) === 16
+            ? substr($pa, 0, 8) === substr($pb, 0, 8)
+            : $pa === $pb;
+    }
+
+    /**
      * The visitor's address for this request. Forwarding headers are honoured
      * only when the connecting peer is a known CDN (filter 'rtsm_trusted_proxies')
      * or a private/loopback address, i.e. a proxy on the same machine or network.

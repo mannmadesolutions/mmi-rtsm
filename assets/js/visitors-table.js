@@ -37,6 +37,7 @@
     };
 
     const LEVEL_BADGE = { bad: 'error', watch: 'warning', verified: 'success' };
+    const YOU_TITLE = 'Your own address. Every device on your network shares it: your phone, other computers, and scripts running on them.';
 
     const state = { window: 3600, level: 'all', rows: [], seq: 0, timer: null };
 
@@ -108,9 +109,11 @@
     }
 
     function rowHtml(r, networks) {
-        const badge = r.level
+        const label = r.level
             ? `<span class="mmi-badge ${LEVEL_BADGE[r.level] || 'info'}">${esc(r.label)}</span>`
-            : '<span class="mmi-text-muted">—</span>';
+            : '';
+        const you = r.you ? `<span class="mmi-badge info" title="${esc(YOU_TITLE)}">You</span>` : '';
+        const badge = [you, label].filter(Boolean).join(' ') || '<span class="mmi-text-muted">—</span>';
         const why = (r.reasons || []).map((t) => `<li>${esc(t)}</li>`).join('');
         let net = '';
         if (networks) {

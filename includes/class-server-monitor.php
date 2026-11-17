@@ -425,7 +425,10 @@ class RTSM_Server_Monitor {
             $cpu         = $snap['cpu'];
             $memory      = $snap['memory'];
             $connections = $snap['connections'];
-            $disk        = $snap['disk'] ?? ['percent' => 0, 'total_gb' => 0, 'used_gb' => 0, 'free_gb' => 0];
+            if (is_array($connections) && isset($connections['details']) && is_array($connections['details'])) {
+                $connections['details'] = RTSM_Active_Visitors::mark_viewer($connections['details']);
+            }
+            $disk       = $snap['disk'] ?? ['percent' => 0, 'total_gb' => 0, 'used_gb' => 0, 'free_gb' => 0];
             $processes = $this->collector->get_processes('all', 5);
             
             // Determine license status for frontend feature gating.

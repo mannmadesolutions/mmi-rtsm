@@ -18,7 +18,7 @@
         },
         {
             "id": "visitors",
-            "text": "Visitors in the last minute, counted from your web server's log or from the pages WordPress serves",
+            "text": "Visitors in the last minute, counted from your web server's log or from the pages WordPress serves, with your own address marked",
             "anchor": "class:RTSM_Active_Visitors",
             "since": "2.11.0"
         },

@@ -640,6 +640,10 @@
     background: #edfaef;
     color: #007017;
 }
+.rtsm-visitor-tag.you {
+    background: #f0f6fc;
+    color: #0a4b78;
+}
 .rtsm-visitor-flagged {
     color: #b32d2e;
 }

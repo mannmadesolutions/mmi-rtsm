@@ -139,7 +139,7 @@ class RTSM_Visitor_Profiles {
         }
         $source = RTSM_Active_Visitors::describe();
         wp_send_json_success([
-            'rows'      => $out,
+            'rows'      => RTSM_Active_Visitors::mark_viewer($out),
             'counts'    => $counts,
             'matched'   => $matched,
             'window'    => $window,
