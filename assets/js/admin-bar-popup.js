@@ -506,7 +506,7 @@
         if (connDetails.length > 0) {
             connTooltip += MESSAGES.topIpsLabel;
             connDetails.slice(0, THRESHOLDS.tooltipConns).forEach(function(conn) {
-                const who  = conn.you ? ' (you)' : conn.label ?` (${conn.label})` : (conn.bot ? ` (${conn.bot})` : '');
+                const who  = conn.you ? ' (you)' : conn.label ? ` (${conn.label})` : (conn.bot ? ` (${conn.bot})` : '');
                 const hits = (conn.count !== null && conn.count !== undefined) ? `: ${conn.count} requests` : '';
                 connTooltip += `${conn.ip}${who}${hits}\n`;
             });
@@ -575,7 +575,7 @@
                 const botTag = conn.you
                     ? ` <span class="rtsm-visitor-tag you" title="${esc([MESSAGES.youTitle].concat(why ? [why] : []).join('\n\n'))}">You</span>`
                     : conn.label
-                    ?` <span class="rtsm-visitor-tag ${esc(conn.level)}" title="${esc(why)}">${esc(conn.label)}</span>`
+                    ? ` <span class="rtsm-visitor-tag ${esc(conn.level)}" title="${esc(why)}">${esc(conn.label)}</span>`
                     : (conn.bot ? ` <span class="rtsm-connection-ip-bot">${esc(conn.bot)}</span>` : '');
                 return `<div class="rtsm-connection-ip-row">
                     <code class="rtsm-connection-ip-code">${esc(conn.ip)}</code>${botTag}
