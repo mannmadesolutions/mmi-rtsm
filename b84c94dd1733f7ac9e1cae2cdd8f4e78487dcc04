@@ -3,4 +3,4 @@ audit pass ship 9 files
 site-rules skip no gate in this repo
 page pass 6 features, 12 screenshots; 12 warnings
 release-audit fail 1 dead (dead-class 1), 0 high, 0 new
-review fail 2 open, 2 fixed, 0 not real
+review fail 1 open, 2 fixed, 1 not real
