@@ -9,14 +9,12 @@ if (!defined('ABSPATH')) {
 
 class RTSM_Server_Monitor {
     
-    private $detector;
     private $collector;
     private $license_manager;
     private $traffic_logger;
     private $settings;
     
     public function __construct() {
-        $this->detector = RTSM_Platform_Detector::get_instance();
         $this->collector = new RTSM_Stats_Collector();
         $this->license_manager = RTSM_License_Manager::get_instance();
         $this->settings = RTSM_Settings_Manager::get_instance();
@@ -38,7 +36,6 @@ class RTSM_Server_Monitor {
         add_action('wp_ajax_rtsm_get_stats', [$this, 'ajax_get_stats']);
         add_action('wp_ajax_rtsm_get_processes', [$this, 'ajax_get_processes']);
         add_action('wp_ajax_rtsm_kill_process', [$this, 'ajax_kill_process']);
-        add_action('wp_ajax_rtsm_get_platform_info', [$this, 'ajax_get_platform_info']);
         add_action('wp_ajax_rtsm_resolve_incident', [$this, 'ajax_resolve_incident']);
         add_action('wp_ajax_rtsm_spawn_cron', [$this, 'ajax_spawn_cron']);
         add_action('wp_ajax_rtsm_get_diagnostics', [$this, 'ajax_get_diagnostics']);
@@ -670,22 +667,6 @@ class RTSM_Server_Monitor {
         } else {
             wp_send_json_error(['message' => $result['message']]);
         }
-    }
-    
-    public function ajax_get_platform_info() {
-        if ( ! wp_verify_nonce( $_POST['nonce'] ?? '', 'rtsm_nonce' ) ) {
-            wp_send_json_error( array(
-                'message' => 'Security verification failed. Please refresh the page.',
-                'code' => 'nonce_verification_failed'
-            ), 403 );
-        }
-        
-        if (!rtsm_user_can()) {
-            wp_send_json_error(['message' => 'Insufficient permissions', 'code' => 'forbidden'], 403);
-        }
-        
-        $info = $this->detector->get_platform_info();
-        wp_send_json_success($info);
     }
     
     /**

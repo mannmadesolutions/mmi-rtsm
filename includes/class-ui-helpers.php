@@ -272,16 +272,6 @@ class RTSM_UI_Helpers {
     }
 
     /**
-     * Format bytes to human-readable format
-     * 
-     * @param int $bytes Number of bytes
-     * @return string Human-readable size
-     */
-    public static function format_bytes($bytes) {
-        return size_format($bytes);
-    }
-
-    /**
      * Get alert severity classes
      * 
      * @param string $alert_line Log line

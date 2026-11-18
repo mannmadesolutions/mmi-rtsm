@@ -60,14 +60,6 @@
     };
 
     /**
-     * Get current tab from URL
-     */
-    function getCurrentTab() {
-        var urlParams = new URLSearchParams(window.location.search);
-        return urlParams.get('tab') || 'dashboard';
-    }
-    
-    /**
      * Refresh intelligent diagnostics
      */
     function refreshDiagnostics() {

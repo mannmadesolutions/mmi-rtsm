@@ -20,10 +20,7 @@ class RTSM_Traffic_Logger {
     private $grace_period_seconds = 120; // Must be high for 120 seconds before activating
     private $minimum_activations_needed = 3; // Require 3 high-load checks before activating
     private $collector;
-    private $incident_active = false;
     private $archiver = null;
-    private $high_load_checks = 0; // Counter for sustained load checks
-    private $last_high_load_timestamp = 0; // Track when high load started
     // Note: Process caching now uses WordPress transients ('rtsm_process_cache')
     // instead of instance variables, providing persistence across requests
     
@@ -40,13 +37,6 @@ class RTSM_Traffic_Logger {
         return self::$instance;
     }
 
-    /** @return float Elevated-load threshold (cores × 1.0, floored at 5.0). */
-    public function get_load_threshold(): float      { return $this->load_threshold; }
-    /** @return float Critical-load threshold (cores × 1.6, capped by RunCloud floor). */
-    public function get_critical_threshold(): float  { return $this->critical_threshold; }
-    /** @return float Emergency-load threshold (cores × 2.0). */
-    public function get_emergency_threshold(): float { return $this->emergency_threshold; }
-    
     /**
      * Constructor - Private to enforce singleton pattern
      */

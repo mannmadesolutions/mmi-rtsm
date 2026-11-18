@@ -73,16 +73,6 @@ class RTSM_License_Manager {
     }
 
     /**
-     * Backward-compatible tier accessor.
-     * Returns 'licensed' when a valid MMI Suite license is active, 'free' otherwise.
-     *
-     * @return string 'licensed' | 'free'
-     */
-    public function get_license_tier(): string {
-        return $this->is_licensed() ? 'licensed' : 'free';
-    }
-
-    /**
      * Invalidate the cached license state (call after activation / deactivation).
      */
     public function invalidate_tier_cache(): void {
@@ -163,99 +153,6 @@ class RTSM_License_Manager {
     }
 
     /**
-     * Check if the license is in grace period (expired but within grace window).
-     * Checks per-plugin option first, then suite data (lifetime suites have no expiry).
-     *
-     * @return bool
-     */
-    public function is_in_grace_period() {
-        // Per-plugin Hub-format option.
-        $hub_data = MMI_Settings::get($this->hub_option);
-        if ($hub_data && !empty($hub_data['expiry_date'])) {
-            $expiry    = strtotime($hub_data['expiry_date']);
-            $grace_end = $expiry + (self::GRACE_PERIOD_DAYS * DAY_IN_SECONDS);
-            return time() > $expiry && time() <= $grace_end;
-        }
-        // Suite data fallback (lifetime plans have no expiry_date).
-        $suite = class_exists('MMI_Settings') ? MMI_Settings::get('mmi_license_mmi-suite') : null;
-        if ($suite && !empty($suite['expiry_date'])) {
-            $expiry    = strtotime($suite['expiry_date']);
-            $grace_end = $expiry + (self::GRACE_PERIOD_DAYS * DAY_IN_SECONDS);
-            return time() > $expiry && time() <= $grace_end;
-        }
-        return false;
-    }
-
-    /**
-     * Get the number of days until license expiry (negative if expired).
-     * Checks per-plugin option first, then suite data.
-     *
-     * @return int|null Days until expiry, or null if no expiry set (e.g. lifetime).
-     */
-    public function get_days_until_expiry() {
-        // Per-plugin Hub-format option.
-        $hub_data = MMI_Settings::get($this->hub_option);
-        if ($hub_data && !empty($hub_data['expiry_date'])) {
-            return (int) round((strtotime($hub_data['expiry_date']) - time()) / DAY_IN_SECONDS);
-        }
-        // Suite data fallback (lifetime plans have no expiry_date → returns null).
-        $suite = class_exists('MMI_Settings') ? MMI_Settings::get('mmi_license_mmi-suite') : null;
-        if ($suite && !empty($suite['expiry_date'])) {
-            return (int) round((strtotime($suite['expiry_date']) - time()) / DAY_IN_SECONDS);
-        }
-        return null;
-    }
-
-    /**
-     * Determine whether the active license comes from the MMI Suite, a direct
-     * per-plugin RTSM license, the legacy local option, or nothing at all.
-     *
-     * Resolution order: suite > direct per-plugin > legacy local
-     *
-     * @return string 'suite' | 'direct' | 'legacy' | 'free'
-     */
-    public function get_license_source(): string {
-        if (!class_exists('MMI_Settings')) {
-            return 'free';
-        }
-
-        // 1. Suite license (Model C — one key unlocks all MMI extensions).
-        $suite = MMI_Settings::get('mmi_license_mmi-suite');
-        if (!empty($suite['status']) && $suite['status'] === 'active' && !empty($suite['type'])) {
-            $ok = empty($suite['expiry_date'])
-                || time() <= strtotime($suite['expiry_date']) + (self::GRACE_PERIOD_DAYS * DAY_IN_SECONDS);
-            if (!empty($suite['trial_ends_at'])) {
-                $ok = $ok && (time() <= strtotime($suite['trial_ends_at']));
-            }
-            if ($ok) return 'suite';
-        }
-
-        // 2. Per-plugin Hub-format option (direct RTSM license).
-        $hub_data = MMI_Settings::get($this->hub_option);
-        if (!empty($hub_data['status']) && $hub_data['status'] === 'active') {
-            $grace_ok = empty($hub_data['expiry_date'])
-                || time() <= strtotime($hub_data['expiry_date']) + (self::GRACE_PERIOD_DAYS * DAY_IN_SECONDS);
-            if ($grace_ok) return 'direct';
-        }
-
-        // 3. Legacy local boolean option.
-        if (MMI_Settings::get($this->license_status_option) === 'active') {
-            return 'legacy';
-        }
-
-        return 'free';
-    }
-
-    /**
-     * Get license status.
-     *
-     * @return string 'active' | 'free'
-     */
-    public function get_license_status(): string {
-        return $this->is_licensed() ? 'active' : 'free';
-    }
-
-    /**
      * Get license key.
      * Resolution order: per-plugin Hub option → legacy local option → suite key.
      */
@@ -276,18 +173,6 @@ class RTSM_License_Manager {
             return $suite['key'];
         }
         return '';
-    }
-
-    /**
-     * Get activation date
-     */
-    public function get_activation_date() {
-        $hub_data = MMI_Settings::get($this->hub_option);
-        if ($hub_data && isset($hub_data['activated_at'])) {
-            return $hub_data['activated_at'];
-        }
-
-        return MMI_Settings::get($this->license_activated_option, '');
     }
 
     /**
@@ -312,9 +197,8 @@ class RTSM_License_Manager {
      * (MMI_License_API — routes locally on the license server itself, or
      * over REST to mannmade.us from any customer site, including its own
      * network-failure/grace-period handling). On success, mirrors the
-     * result into RTSM's own Hub-format option so is_licensed(),
-     * get_days_until_expiry(), is_in_grace_period(), etc. keep working
-     * exactly as before — none of those read methods changed.
+     * result into RTSM's own Hub-format option so is_licensed() and
+     * get_license_key() keep working exactly as before.
      *
      * @param string $key License key
      * @return array{success: bool, message: string}

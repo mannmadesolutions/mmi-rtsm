@@ -92,14 +92,6 @@ class RTSM_Platform_Detector {
         return !in_array($function, $disabled);
     }
     
-    public function get_platform() {
-        return $this->platform;
-    }
-    
-    public function get_capabilities() {
-        return $this->capabilities;
-    }
-    
     public function has_capability($capability) {
         return isset($this->capabilities[$capability]) && $this->capabilities[$capability];
     }

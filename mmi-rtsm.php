@@ -26,7 +26,6 @@ if (!defined('ABSPATH')) {
 define('RTSM_VERSION', '2.11.5');
 define('RTSM_PLUGIN_DIR', plugin_dir_path(__FILE__));
 define('RTSM_PLUGIN_URL', plugin_dir_url(__FILE__));
-define('RTSM_PLUGIN_FILE', __FILE__);
 
 /**
  * The one capability that gates every RTSM admin screen and AJAX action.
@@ -96,7 +95,6 @@ require_once RTSM_PLUGIN_DIR . 'includes/class-tier-branding.php';
 // Server Monitoring Core
 require_once RTSM_PLUGIN_DIR . 'includes/class-settings-manager.php';
 require_once RTSM_PLUGIN_DIR . 'includes/class-platform-detector.php';
-require_once RTSM_PLUGIN_DIR . 'includes/class-environment-detector.php';
 require_once RTSM_PLUGIN_DIR . 'includes/class-shared-hosting-metrics.php';
 require_once RTSM_PLUGIN_DIR . 'includes/class-stats-collector.php';
 require_once RTSM_PLUGIN_DIR . 'includes/class-license-manager.php';

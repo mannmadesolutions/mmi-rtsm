@@ -97,15 +97,4 @@ class RTSM_Tier_Branding {
     public static function render_tab_badge( string $required_tier = 'licensed' ): string {
         return '<span class="mmi-badge info">Suite</span>';
     }
-
-    /**
-     * Return the next upgrade state from the given state.
-     * For the binary model: 'free' upgrades to 'licensed', 'licensed' has no next state.
-     *
-     * @param string $current_state
-     * @return string|null 'licensed' if currently free, null if already licensed.
-     */
-    public static function get_next_tier( string $current_state ): ?string {
-        return self::normalise( $current_state ) === 'free' ? 'licensed' : null;
-    }
 }
