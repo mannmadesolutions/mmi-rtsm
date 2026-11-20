@@ -222,7 +222,7 @@ class RTSM_Traffic_Logger {
             // Headless browsers run by test suites and browser checks (Playwright, Puppeteer, WebKit's WPE processes)
             'browser_tests'    => '/ms-playwright|playwright|puppeteer|headless_shell|chrome-headless|WPEWebProcess|MiniBrowser/i',
             // Monitoring / health-check agents that are benign. The RunCloud agent by its binary only: a bare
-            // "runcloud" matched every process on a RunCloud server (/home/runcloud/…, /RunCloud/Packages/php…, and
+            // "runcloud" matched every process on a RunCloud server (the server user's home directory, /RunCloud/Packages/php…, and
             // WP-CLI itself at /RunCloud/Packages/RunCloudAgent/bin/wp-cli), so the site's cron runner, WP-CLI jobs and
             // test browsers were all reported as "Monitoring" and counted as dev load (2.11.4).
             'monitoring'       => '/RunCloudAgent\/runcloud\b|newrelic|datadog|\bhtop\b|iostat|vmstat|\bsar\b/i',
