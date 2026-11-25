@@ -271,8 +271,7 @@ class RTSM_Server_Monitor {
     }
 
     public function add_settings_page() {
-        // Settings pages have been moved to centralized MannMade menu
-        // See MMI Hub → Server Monitor for the unified interface
+        // Settings pages live in the centralized MannMade menu.
         
         // Keep this method for backwards compatibility but don't add menu items
         // Admin interface is now handled by RTSM_Admin class

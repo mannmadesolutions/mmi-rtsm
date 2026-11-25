@@ -79,7 +79,7 @@ $wpdb->query( "DROP TABLE IF EXISTS {$wpdb->prefix}rtsm_visitor_activity" );
 delete_transient( 'rtsm_visitor_refresh_lock' );
 $table_name = $wpdb->prefix . 'mmi_settings';
 
-// Only attempt if the table exists (Hub may have been removed first).
+// Only attempt if the table exists (it may already have been removed).
 // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 $table_exists = $wpdb->get_var(
     $wpdb->prepare( 'SHOW TABLES LIKE %s', $table_name )

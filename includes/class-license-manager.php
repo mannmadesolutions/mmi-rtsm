@@ -18,7 +18,7 @@ class RTSM_License_Manager {
     private $license_status_option = 'rtsm_license_status';
     private $license_activated_option = 'rtsm_license_activated';
 
-    /** @var string Hub option key for centralized license data */
+    /** @var string Suite option key for centralized license data */
     private $hub_option = 'mmi_license_mmi-rtsm';
 
     /** @var string Plugin slug for license lookups */
@@ -84,15 +84,15 @@ class RTSM_License_Manager {
      * Resolve whether the site currently holds a valid active license.
      *
      * Resolution order:
-     *   1. mmi_is_licensed() — authoritative suite check from MMI Hub.
+     *   1. mmi_is_licensed() — authoritative suite check (shared library).
      *   2. Suite option direct check (load-order fallback).
-     *   3. Per-plugin Hub-format option (direct RTSM license).
+     *   3. Per-plugin suite-format option (direct RTSM license).
      *   4. Legacy local boolean option.
      *
      * @return bool
      */
     private function resolve_is_licensed(): bool {
-        // Priority 1: Hub helper — authoritative suite + per-plugin check.
+        // Priority 1: shared helper — authoritative suite + per-plugin check.
         if ( function_exists( 'mmi_is_licensed' ) ) {
             return mmi_is_licensed( $this->plugin_slug );
         }
@@ -114,7 +114,7 @@ class RTSM_License_Manager {
             }
         }
 
-        // Priority 3: Per-plugin Hub-format option.
+        // Priority 3: Per-plugin suite-format option.
         $hub_data = MMI_Settings::get( $this->hub_option );
         if ( $hub_data && isset( $hub_data['status'] ) && $hub_data['status'] === 'active' ) {
             if ( ! empty( $hub_data['expiry_date'] ) ) {
@@ -154,10 +154,10 @@ class RTSM_License_Manager {
 
     /**
      * Get license key.
-     * Resolution order: per-plugin Hub option → legacy local option → suite key.
+     * Resolution order: per-plugin suite option → legacy local option → suite key.
      */
     public function get_license_key() {
-        // 1. Per-plugin Hub-format option (direct RTSM license).
+        // 1. Per-plugin suite-format option (direct RTSM license).
         $hub_data = MMI_Settings::get($this->hub_option);
         if ($hub_data && isset($hub_data['key'])) {
             return $hub_data['key'];
@@ -176,7 +176,7 @@ class RTSM_License_Manager {
     }
 
     /**
-     * Validate license key format. Accepts any MMI Hub-format key
+     * Validate license key format. Accepts any MMI suite-format key
      * (MMI-XXXX-####-####-####) — not just one whose 4-char code happens to
      * be RTSM's own, since RTSM's binary model means a real MMI Suite
      * bundle key (a different code, e.g. from generate_extension_id()'s
@@ -197,7 +197,7 @@ class RTSM_License_Manager {
      * (MMI_License_API — routes locally on the license server itself, or
      * over REST to mannmade.us from any customer site, including its own
      * network-failure/grace-period handling). On success, mirrors the
-     * result into RTSM's own Hub-format option so is_licensed() and
+     * result into RTSM's own suite-format option so is_licensed() and
      * get_license_key() keep working exactly as before.
      *
      * @param string $key License key

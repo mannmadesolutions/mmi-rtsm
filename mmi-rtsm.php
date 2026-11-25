@@ -3,7 +3,7 @@
  * Plugin Name: MMI Real-Time Server Monitor
  * Plugin URI: https://mannmade.solutions/plugins/mmi-rtsm
  * Description: Real-time server performance monitoring for WordPress. Included with all MMI Suite licenses.
- * Version: 2.11.9
+ * Version: 2.11.10
  * License: GPL-2.0-or-later
  * License URI: https://www.gnu.org/licenses/gpl-2.0.html
  * Author: MannMade Solutions
@@ -23,7 +23,7 @@ if (!defined('ABSPATH')) {
 // ────────────────────────────────────────────────────────────────
 // 2. Plugin Constants
 // ────────────────────────────────────────────────────────────────
-define('RTSM_VERSION', '2.11.9');
+define('RTSM_VERSION', '2.11.10');
 define('RTSM_PLUGIN_DIR', plugin_dir_path(__FILE__));
 define('RTSM_PLUGIN_URL', plugin_dir_url(__FILE__));
 
@@ -77,12 +77,9 @@ add_filter( 'mmi_refreshable_nonces', function ( $nonces ) {
 // ── MMI Shared Library (ADR-0006, mmi-admin/docs/decisions/) ────────
 // Registers this plugin's bundled copy of MMI_Settings/MMI_Logger/
 // MMI_API_Throttler/MMI_Resource_Guard/MMI_Model/MMI_Product/
-// MMI_Media_Helper as a version-negotiation candidate. This plugin no
-// longer hard-requires MMI_Hub (see the dependency check below) — these
-// classes now resolve from this bundled copy whenever mmi-hub isn't
-// present, or from mmi-hub's own copy (which still wins whenever mmi-hub
-// IS present — see ADR-0006). Must load before anything below could
-// reference any of those class names, including mmi_shared_lib_log_dir().
+// MMI_Media_Helper as a version-negotiation candidate; the newest bundled
+// copy across the suite wins (ADR-0006). Must load before anything below
+// could reference any of those class names, including mmi_shared_lib_log_dir().
 require_once RTSM_PLUGIN_DIR . 'includes/mmi-shared/bootstrap.php';
 
 // ────────────────────────────────────────────────────────────────
@@ -111,13 +108,9 @@ require_once RTSM_PLUGIN_DIR . 'includes/class-rtsm-admin.php';
 // ────────────────────────────────────────────────────────────────
 add_action('plugins_loaded', 'rtsm_init');
 function rtsm_init() {
-    // MMI_Hub is no longer a hard requirement (ADR-0006 /
-    // MMI_HUB_ELIMINATION_HANDOFF.md, Phase 2) — every RTSM_* class's
-    // MMI_Logger/MMI_Settings usage now resolves from this plugin's own
-    // bundled includes/mmi-shared/ copy regardless of whether mmi-hub is
-    // present. This plugin has no other hard dependency (WooCommerce isn't
-    // touched anywhere in this plugin — it's server/traffic monitoring, not
-    // commerce).
+    // No dependency checks: MMI_Logger/MMI_Settings come from the bundled
+    // includes/mmi-shared/ copy (ADR-0006), and this plugin doesn't use
+    // WooCommerce (it's server/traffic monitoring, not commerce).
 
     // Admin menu registration always runs, licensed or not — a customer
     // with an expired trial and no active license must still be able to
@@ -235,8 +228,7 @@ function rtsm_deactivate() {
     // Flush rewrite rules
     flush_rewrite_rules();
 
-    // mmi-hub may already be gone by the time this fires — e.g. a
-    // standalone customer deactivating Hub before removing this plugin.
+    // Guarded so deactivation never fatals if the shared logger isn't loaded.
     if ( class_exists( 'MMI_Logger' ) ) {
         MMI_Logger::info( 'Plugin deactivated', [], 'general', 'RTSM' );
     }
@@ -336,7 +328,7 @@ function rtsm_run_cron_health_check() {
         $message = rtsm_render_cron_health_html( $overdue, $total, $threshold, $admin_url );
         wp_mail( get_option( 'admin_email' ), $subject, $message, [ 'Content-Type: text/html; charset=UTF-8' ] );
     } else {
-        // Fallback if mmi-hub's email templates somehow aren't loaded — keep the alert deliverable.
+        // Fallback if the shared email templates somehow aren't loaded — keep the alert deliverable.
         $message = "This is an automated alert from the MannMade Solutions server monitor.\n\n"
                     . "The WordPress cron queue has backed up on {$site_name}.\n\n"
                     . "  Total queued events : {$total}\n"
@@ -348,15 +340,14 @@ function rtsm_run_cron_health_check() {
         wp_mail( get_option( 'admin_email' ), $subject, $message );
     }
     // This cron is scheduled unconditionally at plugins_loaded/5 (below),
-    // independent of rtsm_init()'s own mmi-hub guard — mmi-hub may be gone
-    // by the time an already-scheduled hourly event actually fires.
+    // independent of rtsm_init(), so guard the logger call anyway.
     if ( class_exists( 'MMI_Logger' ) ) {
         MMI_Logger::info( "Cron health check alert sent", [ 'overdue' => $overdue, 'total' => $total ], 'general', 'RTSM' );
     }
 }
 
 /**
- * The HTML body for the cron health alert — split out so MMI VIP's Email
+ * The HTML body for the cron health alert — split out so MMI Admin's Email
  * Customization preview can render the exact same markup without actually
  * sending mail or touching the once-per-6-hours throttle.
  */
@@ -381,7 +372,7 @@ function rtsm_render_cron_health_html( $overdue, $total, $threshold, $admin_url 
 }
 
 /**
- * Register this file's email type with MMI VIP's Email Customization tab
+ * Register this file's email type with MMI Admin's Email Customization tab
  * preview picker — see MMI_Email_Customizer::get_registered_samples().
  */
 add_filter( 'mmi_email_customizer_samples', function ( $samples ) {

@@ -93,8 +93,7 @@ $rtsm_save_btn = '<button type="submit" name="rtsm_save_settings" class="button 
 
 <?php
 // License: the shared suite panel (MMI_License_UI) — status, key, activate /
-// deactivate — instead of RTSM's own card, which linked to the deleted
-// mmi-hub page.
+// deactivate.
 if ( class_exists( 'MMI_License_UI' ) ) {
     MMI_License_UI::render_panel( 'mmi-rtsm', 'Server Monitor' );
 }

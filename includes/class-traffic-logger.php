@@ -41,8 +41,7 @@ class RTSM_Traffic_Logger {
      * Constructor - Private to enforce singleton pattern
      */
     private function __construct() {
-        // Centralized log directory, resolved the same way regardless of
-        // whether mmi-hub is present (ADR-0006).
+        // Centralized log directory from the shared library (ADR-0006).
         $log_dir = rtrim(mmi_shared_lib_log_dir(), '/');
         $this->log_file = $log_dir . '/server-traffic-analysis.log';
         $this->incident_file = $log_dir . '/active-incident.flag';
