@@ -30,7 +30,7 @@ if ($has_active_incident) {
 // Load cause analysis — always fetch so the panel can render even below threshold.
 $load_causes = RTSM_Server_Monitor::get_load_cause_analysis();
 // Show the cause panel whenever load is "elevated" (≥ 4.0), an incident is active,
-// or there are overdue WP-Cron jobs — the cron health alert email's CTA button
+// or there are overdue WP-Cron jobs — the cron health notice's Open link
 // links straight here, so it must render even when current load looks normal.
 $show_causes = $load['1min'] >= 4.0 || $has_active_incident || ( $load_causes['wpcron']['overdue_count'] ?? 0 ) > 0;
 ?>

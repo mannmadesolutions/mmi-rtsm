@@ -12,7 +12,7 @@
         },
         {
             "id": "email-alerts",
-            "text": "Logs every load alert, and emails you when WordPress's scheduled jobs back up",
+            "text": "Logs every load alert, and warns you on the MannMade dashboard, with an email right away, when WordPress's scheduled jobs back up",
             "anchor": "function:rtsm_run_cron_health_check",
             "since": ""
         },

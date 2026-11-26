@@ -3,7 +3,7 @@
  * Plugin Name: MMI Real-Time Server Monitor
  * Plugin URI: https://mannmade.solutions/plugins/mmi-rtsm
  * Description: Real-time server performance monitoring for WordPress. Included with all MMI Suite licenses.
- * Version: 2.11.10
+ * Version: 2.11.11
  * License: GPL-2.0-or-later
  * License URI: https://www.gnu.org/licenses/gpl-2.0.html
  * Author: MannMade Solutions
@@ -23,7 +23,7 @@ if (!defined('ABSPATH')) {
 // ────────────────────────────────────────────────────────────────
 // 2. Plugin Constants
 // ────────────────────────────────────────────────────────────────
-define('RTSM_VERSION', '2.11.10');
+define('RTSM_VERSION', '2.11.11');
 define('RTSM_PLUGIN_DIR', plugin_dir_path(__FILE__));
 define('RTSM_PLUGIN_URL', plugin_dir_url(__FILE__));
 
@@ -308,91 +308,32 @@ function rtsm_run_cron_health_check() {
         }
     }
 
-    // Alert threshold: more than 50 overdue events is a sign something is wrong.
+    // More than 50 overdue events is a sign something is wrong. One open
+    // notice on the MannMade dashboard while it lasts (urgent: emailed at
+    // once, at most once a day); it closes on the next healthy check.
     $threshold = 50;
     if ( $overdue <= $threshold ) {
+        MMI_Notifications::resolve( 'mmi-rtsm', 'cron-backlog' );
         return;
     }
 
-    // Throttle: don't send more than one alert per 6 hours.
-    if ( get_transient( 'rtsm_cron_health_alert_sent' ) ) {
-        return;
-    }
-    set_transient( 'rtsm_cron_health_alert_sent', 1, 6 * HOUR_IN_SECONDS );
-
-    $site_name  = get_bloginfo( 'name' );
-    $admin_url  = admin_url( 'admin.php?page=mmi-rtsm' );
-    $subject    = "[{$site_name}] WARNING: WP-Cron queue is backing up ({$overdue} overdue events)";
-
-    if ( class_exists( 'MMI_Email_Templates' ) ) {
-        $message = rtsm_render_cron_health_html( $overdue, $total, $threshold, $admin_url );
-        wp_mail( get_option( 'admin_email' ), $subject, $message, [ 'Content-Type: text/html; charset=UTF-8' ] );
-    } else {
-        // Fallback if the shared email templates somehow aren't loaded — keep the alert deliverable.
-        $message = "This is an automated alert from the MannMade Solutions server monitor.\n\n"
-                    . "The WordPress cron queue has backed up on {$site_name}.\n\n"
-                    . "  Total queued events : {$total}\n"
-                    . "  Overdue events      : {$overdue}\n"
-                    . "  Alert threshold     : {$threshold}\n\n"
-                    . "Check the cron event list here:\n"
-                    . $admin_url . "\n\n"
-                    . "Time of alert: " . current_time( 'mysql' ) . "\n";
-        wp_mail( get_option( 'admin_email' ), $subject, $message );
-    }
+    MMI_Notifications::notify( [
+        'source'   => 'mmi-rtsm',
+        'key'      => 'cron-backlog',
+        'severity' => 'critical',
+        'urgent'   => true,
+        'title'    => sprintf( 'WP-Cron is backing up: %d overdue events', $overdue ),
+        'body'     => sprintf(
+            "%d of %d scheduled events are more than 5 minutes overdue (alert above %d).\n\nScheduled product syncs, WooCommerce background processing, SEO and plugin maintenance tasks may not be running. Check that a server cron job runs WP-Cron.",
+            $overdue,
+            $total,
+            $threshold
+        ),
+        'url'      => admin_url( 'admin.php?page=mmi-rtsm' ),
+    ] );
     // This cron is scheduled unconditionally at plugins_loaded/5 (below),
     // independent of rtsm_init(), so guard the logger call anyway.
     if ( class_exists( 'MMI_Logger' ) ) {
-        MMI_Logger::info( "Cron health check alert sent", [ 'overdue' => $overdue, 'total' => $total ], 'general', 'RTSM' );
+        MMI_Logger::info( 'Cron health check: queue backing up', [ 'overdue' => $overdue, 'total' => $total ], 'general', 'RTSM' );
     }
 }
-
-/**
- * The HTML body for the cron health alert — split out so MMI Admin's Email
- * Customization preview can render the exact same markup without actually
- * sending mail or touching the once-per-6-hours throttle.
- */
-function rtsm_render_cron_health_html( $overdue, $total, $threshold, $admin_url ) {
-    return MMI_Email_Templates::render_alert( [
-        'site_name'     => get_bloginfo( 'name' ),
-        'headline'      => 'WP-Cron Queue Is Backing Up',
-        'status_color'  => MMI_Email_Templates::token( 'warning' ),
-        'status_label'  => 'Overdue Events Detected',
-        'completed_at'  => current_time( 'F j, Y \a\t g:i a' ),
-        'duration'      => '—',
-        'summary_stats' => [
-            [ 'label' => 'Overdue Events',  'value' => number_format( $overdue ), 'highlight' => true ],
-            [ 'label' => 'Total Queued',    'value' => number_format( $total ) ],
-            [ 'label' => 'Alert Threshold', 'value' => number_format( $threshold ) ],
-        ],
-        'detail_table_header' => '<tr><th style="padding:8px 12px;text-align:left;background:' . MMI_Email_Templates::token( 'warning_bg' ) . ';font-size:12px;text-transform:uppercase;color:' . MMI_Email_Templates::token( 'warning' ) . ';"' . MMI_Email_Templates::data_attr( [ 'warning', 'warning_bg' ] ) . '>May Affect</th></tr>',
-        'detail_table_rows'   => '<tr><td style="padding:12px;font-size:13px;color:' . MMI_Email_Templates::token( 'text_dark' ) . ';"' . MMI_Email_Templates::data_attr( [ 'text_dark' ] ) . '>Scheduled product syncs, WooCommerce background processing, SEO and plugin maintenance tasks.</td></tr>',
-        'dashboard_url' => $admin_url,
-        'cta_label'     => 'Check Cron Event List &rarr;',
-    ] );
-}
-
-/**
- * Register this file's email type with MMI Admin's Email Customization tab
- * preview picker — see MMI_Email_Customizer::get_registered_samples().
- */
-add_filter( 'mmi_email_customizer_samples', function ( $samples ) {
-    // rtsm_render_cron_health_html() calls MMI_Email_Templates directly with
-    // no internal guard of its own (unlike its other call site above, which
-    // checks first). MMI_Email_Templates now ships bundled as part of the
-    // shared library (ADR-0006, added as its 15th class 2026-09-18), so this
-    // guard is kept as defensive dead code — same precedent as MMI_Settings
-    // guards elsewhere in the suite — rather than assumed unreachable.
-    if ( ! class_exists( 'MMI_Email_Templates' ) ) {
-        return $samples;
-    }
-
-    $samples[] = [
-        'id'     => 'rtsm_cron_health',
-        'group'  => 'Server Monitor',
-        'label'  => 'Cron Health Alert',
-        'render' => function () {
-            return rtsm_render_cron_health_html( 75, 120, 50, admin_url( 'admin.php?page=mmi-rtsm' ) );
-        },
-    ];
-    return $samples;
-} );

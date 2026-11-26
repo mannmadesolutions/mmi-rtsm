@@ -26,7 +26,6 @@ $transient_keys = [
     'rtsm_cpu_prev_stat',
     'rtsm_critical_load_checks',
     'rtsm_critical_load_first_ts',
-    'rtsm_cron_health_alert_sent',
     'rtsm_emergency_load_checks',
     'rtsm_emergency_load_first_ts',
     'rtsm_emergency_mode_triggered',

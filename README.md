@@ -38,7 +38,7 @@ MMI Suite licenses.
   `rtsm_emergency_mode_deactivated` actions so other code can react to load
   (for example, by escalating at a CDN). RTSM holds no CDN or Cloudflare
   credentials itself
-- Hourly WP-Cron backlog check with an email alert to the site admin
+- Hourly WP-Cron backlog check: an urgent notice on MannMade → Dashboard (emailed right away, at most once a day) that closes when the queue recovers
 
 Some features use `shell_exec()` (`ps`, `nproc`, `uptime`, `free`); on hosts
 where it is disabled those panels degrade gracefully.
