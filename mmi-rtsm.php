@@ -317,14 +317,6 @@ function rtsm_run_cron_health_check() {
         return;
     }
 
-    // A site that already has a notice open for the cause (a server watch
-    // that saw the cron job go missing) keeps that one notice: a second
-    // alert for the same backlog adds nothing. An open notice of ours is
-    // left as it is and closes on the next healthy check.
-    if ( apply_filters( 'rtsm_cron_backlog_tracked', false, $overdue, $total ) ) {
-        return;
-    }
-
     MMI_Notifications::notify( [
         'source'   => 'mmi-rtsm',
         'key'      => 'cron-backlog',
