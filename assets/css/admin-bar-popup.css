@@ -593,13 +593,13 @@
 .rtsm-connection-ip-bar-fill {
     height: 100%;
     width: var(--bar-width, 0%);
-    background: linear-gradient(90deg, #00a896, #02c39a);
+    background: var(--mmi-primary, #45852C);
 }
 
 .rtsm-connection-ip-count {
     text-align: right;
     font-weight: 600;
-    color: #00a896;
+    color: var(--mmi-primary, #45852C);
 }
 
 /* Error Messages in Admin Bar */
