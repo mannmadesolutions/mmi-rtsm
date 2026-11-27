@@ -3,7 +3,7 @@
  * Plugin Name: MMI Real-Time Server Monitor
  * Plugin URI: https://mannmade.solutions/plugins/mmi-rtsm
  * Description: Real-time server performance monitoring for WordPress. Included with all MMI Suite licenses.
- * Version: 2.11.12
+ * Version: 2.11.13
  * License: GPL-2.0-or-later
  * License URI: https://www.gnu.org/licenses/gpl-2.0.html
  * Author: MannMade Solutions
@@ -23,7 +23,7 @@ if (!defined('ABSPATH')) {
 // ────────────────────────────────────────────────────────────────
 // 2. Plugin Constants
 // ────────────────────────────────────────────────────────────────
-define('RTSM_VERSION', '2.11.12');
+define('RTSM_VERSION', '2.11.13');
 define('RTSM_PLUGIN_DIR', plugin_dir_path(__FILE__));
 define('RTSM_PLUGIN_URL', plugin_dir_url(__FILE__));
 
@@ -314,6 +314,14 @@ function rtsm_run_cron_health_check() {
     $threshold = 50;
     if ( $overdue <= $threshold ) {
         MMI_Notifications::resolve( 'mmi-rtsm', 'cron-backlog' );
+        return;
+    }
+
+    // A site that already has a notice open for the cause (a server watch
+    // that saw the cron job go missing) keeps that one notice: a second
+    // alert for the same backlog adds nothing. An open notice of ours is
+    // left as it is and closes on the next healthy check.
+    if ( apply_filters( 'rtsm_cron_backlog_tracked', false, $overdue, $total ) ) {
         return;
     }
 
